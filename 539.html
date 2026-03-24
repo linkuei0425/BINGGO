@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>539預測大師・機率運算</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #f8fafc;
+            user-select: none;
+        }
+        textarea { user-select: text; }
+        .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+        .pt-safe { padding-top: calc(env(safe-area-inset-top) + 1.25rem); }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const defaultPilioData = `113000085 03, 12, 18, 27, 35
+113000084 01, 09, 15, 22, 38
+113000083 04, 11, 23, 28, 31
+113000082 07, 14, 19, 25, 39
+113000081 02, 08, 17, 26, 33
+113000080 05, 13, 21, 29, 36
+113000079 06, 10, 20, 30, 37
+113000078 03, 16, 24, 32, 34
+113000077 09, 12, 18, 27, 38
+113000076 01, 11, 22, 31, 35
+113000075 04, 15, 23, 28, 39
+113000074 07, 08, 19, 25, 33
+113000073 02, 14, 17, 26, 36
+113000072 05, 10, 21, 29, 37
+113000071 06, 13, 20, 30, 34`;
+
+        const IconDatabase = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>;
+        const IconActivity = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
+        const IconTarget = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>;
+        const IconNetwork = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg>;
+        const IconTrendingUp = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>;
+        const IconBookOpen = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+        const IconCloudDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 17l4 4 4-4"/><path d="M12 12v9"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 1 0 3 16.29"/></svg>;
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('input');
+            const [rawText, setRawText] = useState(defaultPilioData);
+            const [stats, setStats] = useState(null);
+            const [parsedCount, setParsedCount] = useState(0);
+            const [isUpdating, setIsUpdating] = useState(false);
+            const [parsedDetails, setParsedDetails] = useState([]);
+
+            const parseData = (input) => {
+                let text = input;
+                
+                // 1. 先處理 CSV 欄位內包含換行符的狀況（例如 "03/23\n26(一)"）
+                // 把它們轉換成空格，避免被截斷成兩行
+                text = text.replace(/"([^"]+)"/g, (match, p1) => p1.replace(/[\r\n]+/g, ' '));
+                
+                // 2. 清洗日期與星期格式 (避免解析到日期的數字)
+                text = text.replace(/\d{2,4}\/\d{1,2}\/\d{1,2}/g, ' '); // 2024/03/23
+                text = text.replace(/\d{1,2}\/\d{1,2}/g, ' '); // 03/23
+                text = text.replace(/\d{1,2}\s*\([一二三四五六日]\)/g, ' '); // 26(一)
+                text = text.replace(/\([一二三四五六日]\)/g, ' '); // (一)
+                
+                // 3. 移除多餘的標題中文字元與引號
+                text = text.replace(/[期別開獎日期獎號數時間號碼連莊球大小單雙－\t第超級猜-]/g, ' ');
+                text = text.replace(/['"]/g, ' '); 
+                
+                let lines = text.split(/\r?\n/);
+                let details = []; 
+                
+                lines.forEach((line, index) => {
+                    if (!line.trim()) return;
+                    
+                    // 提取期別 (通常是 7-10 位的連續數字)
+                    let periodMatch = line.match(/\b\d{7,10}\b/);
+                    let period = periodMatch ? periodMatch[0] : `行#${index + 1}`;
+                    let cleanLine = line.replace(/\b\d{7,10}\b/g, ' ');
+                    
+                    let nums = cleanLine.match(/\b\d+\b/g);
+                    if (nums) {
+                        // 過濾出 1-39 的有效數字
+                        let validNums = nums.map(Number).filter(n => n >= 1 && n <= 39);
+                        if (validNums.length >= 5) {
+                            // 通常前5個就是獎號，確保不受後面雜訊影響
+                            details.push({ 
+                                period: period, 
+                                numbers: validNums.slice(0, 5).sort((a, b) => a - b) 
+                            });
+                        }
+                    }
+                });
+                
+                // 若逐行解析失敗(全部黏在一起)，退回原本的區塊解析
+                if (details.length === 0) {
+                    let nums = text.match(/\b\d+\b/g);
+                    if (nums) {
+                        let validNums = nums.map(Number).filter(n => n >= 1 && n <= 39);
+                        for (let i = 0; i <= validNums.length - 5; i += 5) {
+                            details.push({ 
+                                period: `區塊#${Math.floor(i/5)+1}`, 
+                                numbers: validNums.slice(i, i + 5).sort((a, b) => a - b) 
+                            });
+                        }
+                    }
+                }
+                
+                let uniqueMap = new Map();
+                details.forEach(d => {
+                    // 使用數字組合做防重複 key
+                    let key = d.numbers.join(',');
+                    if (!uniqueMap.has(key)) uniqueMap.set(key, d);
+                });
+                
+                return Array.from(uniqueMap.values());
+            };
+
+            const calculateStats = (rawDetails) => {
+                if (rawDetails.length < 5) return null;
+                
+                const latestNumbers = rawDetails[0].numbers;
+                const drawData = [...rawDetails].reverse().map(d => d.numbers);
+
+                // 共伴與拖號矩陣
+                let cov = Array(40).fill(0).map(() => Array(40).fill(0));
+                let trail = Array(40).fill(0).map(() => Array(40).fill(0));
+                
+                drawData.forEach((draw, idx) => {
+                    // 同期共伴 (N4)
+                    for (let i = 0; i < draw.length; i++) {
+                        for (let j = i + 1; j < draw.length; j++) {
+                            cov[draw[i]][draw[j]]++; cov[draw[j]][draw[i]]++;
+                        }
+                    }
+                    // 下期拖號 (N3)
+                    if (idx < drawData.length - 1) {
+                        draw.forEach(m => {
+                            drawData[idx+1].forEach(n => { trail[m][n]++; });
+                        });
+                    }
+                });
+
+                // 牽引深度分析
+                const tractionDetails = latestNumbers.map(num => {
+                    let dragCounts = [];
+                    for(let n=1; n<=39; n++) if(trail[num][n] > 0) dragCounts.push({ num: n, count: trail[num][n] });
+                    let top2Drag = dragCounts.sort((a, b) => b.count - a.count).slice(0, 2);
+                    
+                    const dragWithCompanions = top2Drag.map(drag => {
+                        let companions = [];
+                        for(let c=1; c<=39; c++) if(c !== drag.num && cov[drag.num][c] > 0) companions.push({ num: c, count: cov[drag.num][c] });
+                        return {
+                            dragNum: drag.num,
+                            dragCount: drag.count,
+                            topCompanions: companions.sort((a,b) => b.count - a.count).slice(0, 2)
+                        };
+                    });
+                    return { source: num, dragWithCompanions };
+                });
+
+                // 統計指標池
+                const last20 = drawData.slice(-20).flat();
+                let hotPool = [...Array(39).keys()].map(i=>i+1).sort((a,b) => last20.filter(x=>x===b).length - last20.filter(x=>x===a).length);
+                const last5 = drawData.slice(-5).flat();
+                let burstPool = [...Array(39).keys()].map(i=>i+1).sort((a,b) => last5.filter(x=>x===b).length - last5.filter(x=>x===a).length);
+
+                let lastSeen = Array(40).fill(-1);
+                drawData.forEach((draw, index) => { draw.forEach(n => { lastSeen[n] = index; }); });
+                let gaps = Array(40).fill(0);
+                for (let i = 1; i <= 39; i++) gaps[i] = lastSeen[i] !== -1 ? drawData.length - 1 - lastSeen[i] : drawData.length;
+                let coldPool = [...Array(39).keys()].map(i=>i+1).sort((a,b)=>gaps[b]-gaps[a]);
+
+                // 歷史最強尾數統計
+                let tailCounts = Array(10).fill(0);
+                drawData.forEach(draw => draw.forEach(n => tailCounts[n % 10]++));
+                let strongTails = Array.from({length:10}, (_,i) => ({ tail: i, count: tailCounts[i] })).sort((a,b)=>b.count-a.count);
+
+                let dragAll = tractionDetails.flatMap(d => d.dragWithCompanions.map(x=>x.dragNum));
+                let companionAll = tractionDetails.flatMap(d => d.dragWithCompanions.flatMap(x=>x.topCompanions.map(c=>c.num)));
+
+                // 指定配方推薦
+                const getPick = (logicName) => {
+                    let selected = new Set();
+                    let sources = {};
+                    const add = (list, count, code) => {
+                        let added = 0;
+                        for(let n of list) {
+                            if(added < count && n >= 1 && n <= 39 && !selected.has(n)) {
+                                selected.add(n); sources[n] = code; added++;
+                            }
+                        }
+                    };
+
+                    if(logicName === '核心優選 (一)') { // N1(2)+N3(2)+N4(1)
+                        add(hotPool, 2, 'N1'); add(dragAll, 2, 'N3'); add(companionAll, 1, 'N4');
+                    } else if(logicName === '核心優選 (二)') { // N3(3)+N4(2)
+                        add(dragAll, 3, 'N3'); add(companionAll, 2, 'N4');
+                    } else if(logicName === '核心優選 (三)') { // N7(1)+N8(1)+N1(2)+N3(1)
+                        add(burstPool, 1, 'N7');
+                        let bestTailNums = [...Array(39).keys()].map(i=>i+1).filter(x=>x%10 === strongTails[0].tail);
+                        add(bestTailNums, 1, 'N8'); add(hotPool, 2, 'N1'); add(dragAll, 1, 'N3');
+                    } else if(logicName === '核心優選 (四)') { // N4(2)+N3(3)
+                        add(companionAll, 2, 'N4'); add(dragAll, 3, 'N3');
+                    } else if(logicName === '牽引全連動') {
+                        add(dragAll, 5, 'N3');
+                    } else if(logicName === '短線大爆發') {
+                        add(burstPool, 3, 'N7'); 
+                        add(hotPool.slice(0,5), 2, 'N1');
+                    }
+                    
+                    let fallback = [...hotPool];
+                    for(let f of fallback) if(selected.size < 5) add([f], 1, 'N1');
+                    return { name: logicName, numbers: Array.from(selected).sort((a,b)=>a-b), sources };
+                };
+
+                return {
+                    latestNumbers,
+                    tractionDetails,
+                    picks: ['核心優選 (一)', '核心優選 (二)', '核心優選 (三)', '核心優選 (四)', '牽引全連動', '短線大爆發'].map(n => getPick(n)),
+                    hot10: hotPool.slice(0, 10).map(n => ({num:n, count: drawData.slice(-20).flat().filter(x=>x===n).length})),
+                    cold10: coldPool.slice(0, 10).map(n => ({num:n, gap: gaps[n]})),
+                    strongTails: strongTails.slice(0, 5).map(st => ({ tail: st.tail, count: st.count }))
+                };
+            };
+
+            const handleProcessData = () => {
+                try {
+                    const details = parseData(rawText);
+                    setParsedDetails(details);
+                    setParsedCount(details.length);
+                    if (details.length >= 5) {
+                        setStats(calculateStats(details));
+                        alert(`✅ 解析成功！共載入 ${details.length} 期紀錄。`);
+                        setActiveTab('picks');
+                    } else {
+                        alert(`⚠️ 載入成功，但資料不足 (目前 ${details.length} 期，需至少 5 期)。`);
+                    }
+                } catch (e) { alert("❌ 解析發生錯誤"); }
+            };
+
+            const handleAutoUpdate = async () => {
+                setIsUpdating(true);
+                try {
+                    const id = "1kvSj_ABPF48CqjINHg6yST0O1IPMgcOOIPX96D7SzDg";
+                    const sheetTabName = "歷史紀錄";
+                    const ts = new Date().getTime();
+                    
+                    const targetUrls = [
+                        `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetTabName)}&t=${ts}`,
+                        `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&id=${id}&gid=0&t=${ts}`
+                    ];
+                    
+                    const proxies = [
+                        "https://corsproxy.io/?",
+                        "https://api.allorigins.win/raw?url=",
+                        "https://api.codetabs.com/v1/proxy?quest="
+                    ];
+                    
+                    let csv = "";
+                    let fetchSuccess = false;
+
+                    for (let targetUrl of targetUrls) {
+                        if (fetchSuccess) break;
+                        for (let proxy of proxies) {
+                            try {
+                                const fetchUrl = proxy.includes('corsproxy.io') 
+                                    ? `${proxy}${encodeURIComponent(targetUrl)}` 
+                                    : `${proxy}${encodeURIComponent(targetUrl)}`;
+                                    
+                                const res = await fetch(fetchUrl, { cache: 'no-store' });
+                                if (!res.ok) continue;
+
+                                const text = await res.text();
+                                if (text && !text.toLowerCase().includes("<!doctype html>") && text.length > 30) {
+                                    csv = text;
+                                    fetchSuccess = true;
+                                    break;
+                                }
+                            } catch (e) { 
+                                continue; 
+                            }
+                        }
+                    }
+
+                    if (!csv) throw new Error("無法連接 Google 試算表。\n請確認：\n1. 試算表權限已設為「知道連結的任何人」\n2. 試算表分頁名稱是否確實為「歷史紀錄」");
+
+                    setRawText(csv);
+                    const details = parseData(csv);
+                    
+                    if (details.length === 0) throw new Error("成功連接試算表，但內容格式無法解析為期數與獎號。");
+
+                    setParsedDetails(details);
+                    setParsedCount(details.length);
+                    
+                    if (details.length >= 5) {
+                        setStats(calculateStats(details));
+                        alert(`✅ 雲端同步完成！成功解析 ${details.length} 期資料。`);
+                        setActiveTab('picks');
+                    } else {
+                        alert(`⚠️ 同步完成，但只找到 ${details.length} 期資料 (至少需 5 期)。`);
+                    }
+                } catch (error) { 
+                    alert(`❌ 同步錯誤: ${error.message}`); 
+                } finally { 
+                    setIsUpdating(false); 
+                }
+            };
+
+            useEffect(() => { handleProcessData(); }, []);
+
+            const NumberBadge = ({ num, source, size = "normal" }) => {
+                const sizeClass = size === "small" ? "w-7 h-7 text-xs" : "w-10 h-10 text-base";
+                let colorClass = "bg-slate-700 text-white";
+                if (source === 'N1') colorClass = "bg-red-500 shadow-red-200";
+                else if (source === 'N2') colorClass = "bg-cyan-500 shadow-cyan-200";
+                else if (source === 'N3') colorClass = "bg-green-500 shadow-green-200";
+                else if (source === 'N4') colorClass = "bg-purple-500 shadow-purple-200";
+                else if (source === 'N5') colorClass = "bg-orange-500 shadow-orange-200";
+                else if (source === 'N7') colorClass = "bg-rose-600 shadow-rose-200";
+                else if (source === 'N8') colorClass = "bg-fuchsia-600 shadow-fuchsia-200";
+                return (
+                    <span className={`inline-flex items-center justify-center rounded-full font-bold shadow-md text-white ${colorClass} ${sizeClass} relative`}>
+                        {num.toString().padStart(2, '0')}
+                        {source && size !== "small" && <span className="absolute -top-2 -right-2 text-[8px] bg-white text-gray-800 px-1 rounded-full shadow border font-black">{source}</span>}
+                    </span>
+                );
+            };
+
+            return (
+                <div className="min-h-screen pb-24 bg-slate-50 font-sans">
+                    <div className="bg-slate-900 text-white p-5 rounded-b-3xl sticky top-0 z-50 shadow-md">
+                        <div className="flex justify-between items-center">
+                            <h1 className="text-xl font-bold flex items-center gap-2"><IconActivity /> 539 預測大師</h1>
+                            <span className="text-[10px] bg-emerald-500 text-white px-2 py-1 rounded-full font-black tracking-tight">庫存: {parsedCount} 期</span>
+                        </div>
+                    </div>
+
+                    <div className="max-w-md mx-auto p-4">
+                        {activeTab === 'input' && (
+                            <div className="animate-fade-in space-y-4">
+                                <div className="bg-white p-5 rounded-2xl border-2 border-emerald-100 shadow-sm">
+                                    <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg"><IconDatabase /> 雲端同步管理</h2>
+                                    <button onClick={handleAutoUpdate} disabled={isUpdating} className={`w-full flex justify-center items-center gap-2 ${isUpdating ? 'bg-gray-400' : 'bg-emerald-600'} text-white font-bold py-5 rounded-2xl shadow-lg active:scale-95 transition-all mb-6`}>
+                                        <IconCloudDownload /> {isUpdating ? '正在通訊中...' : '點我從雲端更新數據'}
+                                    </button>
+                                    
+                                    <div className="border-t pt-4">
+                                        <h3 className="font-bold text-gray-600 mb-2 text-sm flex justify-between">
+                                            <span>手動貼入更新獎號</span>
+                                            <span className="text-[9px] text-gray-400">最新一期放在最上面</span>
+                                        </h3>
+                                        <textarea className="w-full h-48 p-3 border rounded-xl text-xs bg-slate-50 font-mono focus:ring-2 focus:ring-emerald-500 border-slate-200" value={rawText} onChange={e => setRawText(e.target.value)} placeholder="03/23 26(一)07, 12, 24, 29, 35..." />
+                                        <button onClick={handleProcessData} className="w-full bg-indigo-600 text-white font-bold py-4 mt-3 rounded-xl shadow-md active:bg-indigo-700">立即解析數據</button>
+                                    </div>
+                                </div>
+
+                                {parsedDetails.length > 0 && (
+                                    <div className="p-4 bg-white border rounded-xl shadow-sm">
+                                        <h3 className="text-xs font-bold text-emerald-500 mb-3 uppercase tracking-wider flex justify-between">
+                                            <span>✅ 最新解析核對</span>
+                                        </h3>
+                                        {parsedDetails.slice(0, 3).map((record, idx) => (
+                                            <div key={idx} className="border-b last:border-0 py-2 flex items-center justify-between">
+                                                <div className="text-[10px] font-bold text-blue-600">{idx === 0 ? "🔥 最新" : `前 ${idx} 期`}</div>
+                                                <div className="flex gap-1.5">
+                                                    {record.numbers.map(n => <span key={n} className="w-7 h-7 text-xs bg-slate-700 text-white rounded-full flex items-center justify-center font-bold shadow-sm">{n.toString().padStart(2, '0')}</span>)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'details' && stats && (
+                            <div className="animate-fade-in space-y-4">
+                                <div className="bg-slate-800 text-white p-4 rounded-2xl shadow-lg border-b-4 border-emerald-500 text-center">
+                                    <div className="text-[10px] opacity-60 mb-2 font-bold uppercase tracking-widest font-black">本期開出獎號 (牽引基準)</div>
+                                    <div className="flex justify-center gap-2">
+                                        {stats.latestNumbers.map(n => (
+                                            <span key={n} className="w-10 h-10 bg-white text-slate-900 rounded-full flex items-center justify-center font-black shadow-inner text-lg">
+                                                {n.toString().padStart(2, '0')}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {stats.tractionDetails.map((item, idx) => (
+                                    <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-700"></div>
+                                        <div className="flex items-center gap-3 mb-4 border-b pb-2">
+                                            <span className="bg-slate-700 text-white w-8 h-8 rounded-lg flex items-center justify-center font-black">{item.source}</span>
+                                            <span className="text-sm font-black text-slate-600">單碼歷史最強拖號</span>
+                                        </div>
+                                        
+                                        <div className="space-y-4">
+                                            {item.dragWithCompanions.map((dragObj, i) => (
+                                                <div key={i} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[9px] text-emerald-500 font-black uppercase tracking-tighter">下一期推薦拖號 NO.{i+1}</span>
+                                                            <span className="text-2xl font-black text-slate-800">{dragObj.dragNum.toString().padStart(2, '0')}</span>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="text-[10px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded font-black">歷史次數: {dragObj.dragCount}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200 border-dashed">
+                                                        <span className="text-[10px] font-bold text-slate-400">★ 拖號共伴:</span>
+                                                        <div className="flex gap-2">
+                                                            {dragObj.topCompanions.map(comp => (
+                                                                <div key={comp.num} className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm">
+                                                                    <span className="text-sm font-black text-indigo-600">{comp.num.toString().padStart(2, '0')}</span>
+                                                                    <span className="text-[8px] text-slate-300">({comp.count}次)</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {activeTab === 'picks' && stats && (
+                            <div className="animate-fade-in space-y-4">
+                                <div className="bg-indigo-600 text-white p-3 rounded-xl shadow-sm mb-2 text-center font-bold">
+                                    <span className="text-xs uppercase tracking-widest">精選 6 組 5 碼大數據優化推薦</span>
+                                </div>
+                                {stats.picks.map((p, idx) => (
+                                    <div key={idx} className="bg-white p-5 rounded-2xl border-2 border-blue-50 shadow-md">
+                                        <h4 className="font-black text-blue-900 mb-4 border-b pb-2 flex justify-between items-center text-lg">
+                                            {p.name} <span className="text-[10px] bg-blue-100 text-blue-600 px-3 py-1 rounded-full font-black">5碼組合</span>
+                                        </h4>
+                                        <div className="flex flex-wrap gap-3">
+                                            {p.numbers.map(n => <NumberBadge key={`${p.name}-${n}`} num={n} source={p.sources[n]} />)}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {activeTab === 'trends' && stats && (
+                            <div className="animate-fade-in space-y-5">
+                                <div className="bg-white p-4 rounded-2xl border shadow-sm">
+                                    <h3 className="font-black text-red-600 mb-4 border-b pb-2 flex items-center gap-2 text-lg">
+                                        <IconTrendingUp /> 🔥 熱門號 (近期高頻排行)
+                                    </h3>
+                                    <div className="flex flex-wrap gap-4">
+                                        {stats.hot10.map(item => (
+                                            <div key={item.num} className="flex flex-col items-center">
+                                                <NumberBadge num={item.num} size="small" />
+                                                <span className="text-[10px] text-gray-500 mt-1 font-bold">{item.count}次</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-white p-4 rounded-2xl border shadow-sm">
+                                    <h3 className="font-black text-blue-600 mb-4 border-b pb-2 flex items-center gap-2 text-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93"/></svg>
+                                        ❄️ 冷門號 (目前遺漏排行)
+                                    </h3>
+                                    <div className="flex flex-wrap gap-4">
+                                        {stats.cold10.map(item => (
+                                            <div key={item.num} className="flex flex-col items-center">
+                                                <NumberBadge num={item.num} size="small" />
+                                                <span className="text-[10px] text-blue-400 mt-1 font-bold">漏{item.gap}期</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border shadow-sm">
+                                    <h3 className="font-black text-orange-600 mb-4 border-b pb-2 flex items-center gap-2 text-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                                        🎯 最強尾數 (歷史最高頻尾數)
+                                    </h3>
+                                    <div className="flex flex-wrap gap-4">
+                                        {stats.strongTails.map(item => (
+                                            <div key={`tail-${item.tail}`} className="flex flex-col items-center">
+                                                <span className="w-10 h-10 text-base bg-orange-500 shadow-orange-200 text-white inline-flex items-center justify-center rounded-full font-bold shadow-md">
+                                                    {item.tail}尾
+                                                </span>
+                                                <span className="text-[10px] text-orange-400 mt-1 font-bold">{item.count}次</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'logic' && (
+                            <div className="animate-fade-in bg-white p-5 rounded-2xl border shadow-sm space-y-6">
+                                <h2 className="font-black text-gray-800 border-b-2 border-slate-100 pb-3 text-lg">💡 預測邏輯代號與說明</h2>
+                                <div className="space-y-5 text-sm text-gray-700 font-medium">
+                                    <div className="flex gap-4"><span className="bg-red-500 text-white w-10 h-7 rounded-lg flex items-center justify-center font-black shrink-0 text-xs shadow-sm">N1</span><p><strong>溫熱指標：</strong> 近 10 期內出現次數最多的中心高頻號碼。</p></div>
+                                    <div className="flex gap-4"><span className="bg-cyan-500 text-white w-10 h-7 rounded-lg flex items-center justify-center font-black shrink-0 text-xs shadow-sm">N2</span><p><strong>回歸規律：</strong> 出現過且目前處於週期性回補點的跳期號碼。</p></div>
+                                    <div className="flex gap-4"><span className="bg-green-500 text-white w-10 h-7 rounded-lg flex items-center justify-center font-black shrink-0 text-xs shadow-sm">N3</span><p><strong>牽引/拖號：</strong> 由歷史大數據追蹤前一期獎號所帶動的下一期號碼。</p></div>
+                                    <div className="flex gap-4"><span className="bg-purple-500 text-white w-10 h-7 rounded-lg flex items-center justify-center font-black shrink-0 text-xs shadow-sm">N4</span><p><strong>共伴效應：</strong> 歷史中與基準號碼最常成雙成對「同時開出」的組合。</p></div>
+                                    <div className="flex gap-4"><span className="bg-orange-500 text-white w-10 h-7 rounded-lg flex items-center justify-center font-black shrink-0 text-xs shadow-sm">N5</span><p><strong>破冰冷號：</strong> 鎖定長期遺漏的冷門號，追蹤其大數回歸觸發點。</p></div>
+                                    <div className="flex gap-4"><span className="bg-rose-600 text-white w-10 h-7 rounded-lg flex items-center justify-center font-black shrink-0 text-xs shadow-sm">N7</span><p><strong>5期爆發：</strong> 極短線（近 5 期）手感最火熱、連莊力強的強勢號。</p></div>
+                                    <div className="flex gap-4"><span className="bg-fuchsia-600 text-white w-10 h-7 rounded-lg flex items-center justify-center font-black shrink-0 text-xs shadow-sm">N8</span><p><strong>強勢尾數：</strong> 統計尾數佔比，挑選出處於波段高峰的尾數系列。</p></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.08)] z-50">
+                        <button onClick={() => setActiveTab('input')} className={`flex flex-col items-center gap-1 w-1/5 py-1 ${activeTab === 'input' ? 'text-emerald-600 font-black scale-105' : 'text-slate-400'} transition-all`}>
+                            <IconDatabase /><span className="text-[10px]">同步/貼入</span>
+                        </button>
+                        <button onClick={() => setActiveTab('details')} className={`flex flex-col items-center gap-1 w-1/5 py-1 ${activeTab === 'details' ? 'text-blue-600 font-black scale-105' : 'text-slate-400'} transition-all`}>
+                            <IconNetwork /><span className="text-[10px]">牽引分析</span>
+                        </button>
+                        <button onClick={() => setActiveTab('picks')} className={`flex flex-col items-center gap-1 w-1/5 py-1 ${activeTab === 'picks' ? 'text-indigo-600 font-black scale-105' : 'text-slate-400'} transition-all`}>
+                            <IconTarget /><span className="text-[10px]">組合推薦</span>
+                        </button>
+                        <button onClick={() => setActiveTab('trends')} className={`flex flex-col items-center gap-1 w-1/5 py-1 ${activeTab === 'trends' ? 'text-amber-600 font-black scale-105' : 'text-slate-400'} transition-all`}>
+                            <IconTrendingUp /><span className="text-[10px]">數據趨勢</span>
+                        </button>
+                        <button onClick={() => setActiveTab('logic')} className={`flex flex-col items-center gap-1 w-1/5 py-1 ${activeTab === 'logic' ? 'text-slate-700 font-black scale-105' : 'text-slate-400'} transition-all`}>
+                            <IconBookOpen /><span className="text-[10px]">邏輯說明</span>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
