@@ -78,6 +78,7 @@
             const [singleNumbers, setSingleNumbers] = useState('');
 
             const parseData = (input) => {
+                if (!input) return { array: [], details: [] };
                 let text = input.replace(/['"]/g, ' ')
                                 .replace(/\d{2,4}[-/\.]\d{1,2}[-/\.]\d{1,2}/g, ' ') 
                                 .replace(/\d{1,2}:\d{2}(:\d{2})?/g, ' ') 
@@ -140,7 +141,7 @@
             };
 
             const calculateStats = (drawData) => {
-                if (drawData.length < 15) return null; 
+                if (!drawData || drawData.length < 15) return null; 
 
                 let gaps = Array(81).fill(0);
                 
@@ -461,6 +462,19 @@
                 };
             };
 
+            const refreshStats = (textData) => {
+                try {
+                    const parsed = parseData(textData);
+                    setParsedCount(parsed.array.length);
+                    setParsedDetails(parsed.details);
+                    if (parsed.array.length >= 15) {
+                        setStats(calculateStats(parsed.array));
+                    }
+                } catch (e) {
+                    console.error("重新計算狀態失敗", e);
+                }
+            };
+
             const handleProcessData = () => {
                 try {
                     const parsed = parseData(rawText);
@@ -566,47 +580,18 @@
             const handleAutoUpdate = async () => {
                 setIsUpdating(true);
                 try {
-                    const extractedId = "1YCp4fwiSdvYvs7Nt7s04Vg3ZcswlqO2Ta2cf16L5lZg";
-                    const sheetTabName = "歷史紀錄";
-                    const timestamp = new Date().getTime();
+                    const docId = "1YCp4fwiSdvYvs7Nt7s04Vg3ZcswlqO2Ta2cf16L5lZg";
+                    const tabName = "歷史紀錄";
+                    const cacheBuster = new Date().getTime();
                     
-                    const gvizUrl = "https://docs.google.com/spreadsheets/d/" + extractedId + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(sheetTabName) + "&t=" + timestamp;
-                    const rawExportUrl = "https://docs.google.com/spreadsheets/d/" + extractedId + "/export?format=csv&t=" + timestamp;
+                    // 💡 直接使用 Google Sheet 最安全、最穩定的前端 CSV 直連路徑，擺脫第三方代理伺服器！
+                    const directUrl = "https://docs.google.com/spreadsheets/d/" + docId + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tabName) + "&t=" + cacheBuster;
                     
-                    const proxies = [
-                        "https://api.allorigins.win/raw?url=" + encodeURIComponent(gvizUrl),
-                        "https://api.allorigins.win/raw?url=" + encodeURIComponent(rawExportUrl),
-                        "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(gvizUrl),
-                        "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(rawExportUrl)
-                    ];
+                    const response = await fetch(directUrl, { method: 'GET', mode: 'cors', cache: 'no-store' });
+                    if (!response.ok) throw new Error("Google 雲端無回應");
                     
-                    let text = null;
-                    let lastError = null;
-                    let bestParsedLength = 0;
-                    let bestText = null;
-
-                    for (const proxyUrl of proxies) {
-                        try {
-                            const response = await fetch(proxyUrl, { cache: 'no-store' });
-                            if (response.ok) {
-                                let tempText = await response.text();
-                                if (tempText && !tempText.includes("<html")) {
-                                    let tempParsed = parseData(tempText);
-                                    if (tempParsed.array.length > bestParsedLength) {
-                                        bestParsedLength = tempParsed.array.length;
-                                        bestText = tempText;
-                                    }
-                                    if (bestParsedLength >= 150) break;
-                                }
-                            }
-                        } catch (e) { 
-                            lastError = e;
-                            console.warn("代理連線嘗試", e); 
-                        }
-                    }
-
-                    text = bestText;
-                    if (!text) throw new Error(lastError ? "代理伺服器皆無法連線，請稍後再試。" : "無法取得有效的 CSV 資料。");
+                    let text = await response.text();
+                    if (!text || text.includes("<html")) throw new Error("抓取到的試算表內容格式不正確");
                     
                     setRawText(text);
                     const parsed = parseData(text);
@@ -615,14 +600,17 @@
                     
                     if (parsed.array.length >= 15) {
                         setStats(calculateStats(parsed.array));
-                        alert("雲端資料同步完成！\n本次為您找回並載入了 " + parsed.array.length + " 期開獎記錄。\n\n⚠️ 如果數量仍不如預期，請務必進入 Google 試算表，把「歷史紀錄」這張活頁【拖曳到最左邊的第一個位置】。");
+                        alert("✅ 雲端資料同步完成！\n成功載入了 " + parsed.array.length + " 期開獎記錄。");
                         setActiveTab('picks');
                     } else {
-                        alert("雲端資料已載入，但只解析到 " + parsed.array.length + " 期。\n若數量異常，請檢查試算表格式。");
+                        alert("⚠️ 雲端資料已載入，但只成功解析到 " + parsed.array.length + " 期。");
                     }
                 } catch (error) {
-                    alert("自動更新失敗: " + error.message);
-                } finally { setIsUpdating(false); }
+                    alert("❌ 自動更新失敗: " + error.message + "\n\n目前為您切換至本地離線預設數據。");
+                    refreshStats(rawText || defaultPilioData);
+                } finally { 
+                    setIsUpdating(false); 
+                }
             };
 
             const NumberBadge = ({ num, source, size = "normal" }) => {
@@ -645,40 +633,38 @@
                 );
             };
 
-            const StarRow = ({ stars, data, customDesc }) => (
-                <div className="bg-white p-4 rounded-xl shadow-sm border mb-4 animate-fade-in">
-                    <div className="mb-3 border-b pb-2">
-                        <h4 className="font-bold text-gray-800 text-lg">{stars} 星精準推薦</h4>
-                        <p className="text-xs text-gray-500 mt-1">{customDesc}</p>
-                    </div>
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">主力組合</span>
-                            <div className="flex gap-1 text-[10px] font-medium flex-wrap justify-end">
-                                {data.set1.breakdown.n1 > 0 && <span className="text-red-500">核心:{data.set1.breakdown.n1}</span>}
-                                {data.set1.breakdown.n2 > 0 && <span className="text-cyan-500">回歸:{data.set1.breakdown.n2}</span>}
-                                {data.set1.breakdown.n5 > 0 && <span className="text-orange-500">破冰:{data.set1.breakdown.n5}</span>}
-                                {data.set1.breakdown.n3 > 0 && <span className="text-green-500">拖號:{data.set1.breakdown.n3}</span>}
-                                {data.set1.breakdown.n4 > 0 && <span className="text-purple-500">共伴:{data.set1.breakdown.n4}</span>}
-                                {data.set1.breakdown.n6 > 0 && <span className="text-slate-500">未開小號:{data.set1.breakdown.n6}</span>}
-                                {data.set1.breakdown.n7 > 0 && <span className="text-rose-500">5熱:{data.set1.breakdown.n7}</span>}
-                                {data.set1.breakdown.n8 > 0 && <span className="text-fuchsia-600">強尾:{data.set1.breakdown.n8}</span>}
+            const StarRow = ({ stars, data, customDesc }) => {
+                if (!data || !data.set1) return null;
+                return (
+                    <div className="bg-white p-4 rounded-xl shadow-sm border mb-4 animate-fade-in">
+                        <div className="mb-3 border-b pb-2">
+                            <h4 className="font-bold text-gray-800 text-lg">{stars} 星精準推薦</h4>
+                            <p className="text-xs text-gray-500 mt-1">{customDesc}</p>
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">主力組合</span>
+                                <div className="flex gap-1 text-[10px] font-medium flex-wrap justify-end">
+                                    {data.set1.breakdown.n1 > 0 && <span className="text-red-500">核心:{data.set1.breakdown.n1}</span>}
+                                    {data.set1.breakdown.n2 > 0 && <span className="text-cyan-500">回歸:{data.set1.breakdown.n2}</span>}
+                                    {data.set1.breakdown.n5 > 0 && <span className="text-orange-500">破冰:{data.set1.breakdown.n5}</span>}
+                                    {data.set1.breakdown.n3 > 0 && <span className="text-green-500">拖號:{data.set1.breakdown.n3}</span>}
+                                    {data.set1.breakdown.n4 > 0 && <span className="text-purple-500">共伴:{data.set1.breakdown.n4}</span>}
+                                    {data.set1.breakdown.n6 > 0 && <span className="text-slate-500">未開小號:{data.set1.breakdown.n6}</span>}
+                                    {data.set1.breakdown.n7 > 0 && <span className="text-rose-500">5熱:{data.set1.breakdown.n7}</span>}
+                                    {data.set1.breakdown.n8 > 0 && <span className="text-fuchsia-600">強尾:{data.set1.breakdown.n8}</span>}
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-x-2 gap-y-3">
+                                {data.set1.numbers.map((n, i) => <NumberBadge key={stars + "-A-" + n + "-" + i} num={n} source={data.set1.sources[n]} />)}
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-x-2 gap-y-3">
-                            {data.set1.numbers.map((n, i) => <NumberBadge key={stars + "-A-" + n + "-" + i} num={n} source={data.set1.sources[n]} />)}
-                        </div>
                     </div>
-                </div>
-            );
+                );
+            };
 
             useEffect(() => {
-                try {
-                    const parsed = parseData(rawText);
-                    setParsedCount(parsed.array.length);
-                    setParsedDetails(parsed.details);
-                    if (parsed.array.length >= 15) setStats(calculateStats(parsed.array));
-                } catch(e) {}
+                refreshStats(defaultPilioData);
             }, []);
 
             return (
@@ -719,7 +705,9 @@
                                     <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><IconDatabase /> 資料庫管理</h2>
 
                                     <div className="flex gap-2">
-                                        <button onClick={handleAutoUpdate} disabled={isUpdating} className={"flex-1 " + (isUpdating ? 'bg-gray-400' : 'bg-emerald-600') + " text-white font-bold py-3 rounded-lg text-sm shadow-md"}>雲端同步</button>
+                                        <button onClick={handleAutoUpdate} disabled={isUpdating} className={"flex-1 " + (isUpdating ? 'bg-gray-400' : 'bg-emerald-600') + " text-white font-bold py-3 rounded-lg text-sm shadow-md"}>
+                                            {isUpdating ? '同步中...' : '雲端同步'}
+                                        </button>
                                         <button onClick={handleProcessData} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-lg text-sm shadow-md">解析手動數據</button>
                                     </div>
                                     <div className="mt-4">
@@ -727,7 +715,7 @@
                                     </div>
                                 </div>
 
-                                {parsedCount > 0 && (
+                                {parsedCount > 0 && parsedDetails && parsedDetails.length > 0 && (
                                     <div className="p-4 bg-white border rounded-xl shadow-sm">
                                         <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase flex justify-between items-center">
                                             <span>🔍 最新解析預覽</span>
@@ -812,7 +800,7 @@
                                 </div>
                                 <div className="bg-white p-4 rounded-xl border shadow-sm">
                                     <h3 className="font-bold text-amber-600 mb-3 border-b pb-2">🎯 尾數強勢號 (10局佔比 25%~30%)</h3>
-                                    {stats.strongTails.length > 0 ? (
+                                    {stats.strongTails && stats.strongTails.length > 0 ? (
                                         <div className="flex flex-wrap gap-3">
                                             {stats.strongTails.map(item => (
                                                 <div key={item.tail} className="flex flex-col items-center justify-center bg-amber-50 w-14 h-14 rounded-lg border border-amber-200 shadow-sm">
@@ -877,7 +865,7 @@
                             </div>
                         )}
 
-                        {activeTab === 'details' && stats && (
+                        {activeTab === 'details' && stats && stats.trailDetails && (
                             <div className="animate-fade-in space-y-3">
                                 <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-2">
                                     <h3 className="text-sm font-bold text-indigo-800">最新期號碼牽引預測</h3>
