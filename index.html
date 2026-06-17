@@ -5,6 +5,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>BINGO AI預測大師</title>
+    
+    <!-- 🚨 終極防護欄截器：只要網頁出錯，絕對不允許它白屏，一定要跳出錯誤訊息 -->
+    <script>
+        window.addEventListener('error', function(e) {
+            alert("❌ 網頁執行發生錯誤！\n訊息: " + e.message + "\n檔案: " + e.filename + "\n行號: " + e.lineno);
+        });
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -584,7 +592,6 @@
                     const tabName = "歷史紀錄";
                     const cacheBuster = new Date().getTime();
                     
-                    // 💡 直接使用 Google Sheet 最安全、最穩定的前端 CSV 直連路徑，擺脫第三方代理伺服器！
                     const directUrl = "https://docs.google.com/spreadsheets/d/" + docId + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tabName) + "&t=" + cacheBuster;
                     
                     const response = await fetch(directUrl, { method: 'GET', mode: 'cors', cache: 'no-store' });
