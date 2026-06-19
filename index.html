@@ -7,16 +7,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>BINGO AI預測大師</title>
 
-    <!-- 🚨 終極防護攔截器：網頁出錯絕對不允許白屏，一定要跳出錯誤訊息 -->
+    <!-- 🚨 錯誤攔截器 -->
     <script>
         window.addEventListener('error', function(e) {
-            alert("❌ 網頁執行發生錯誤！\n訊息: " + e.message + "\n檔案: " + e.filename + "\n行號: " + e.lineno);
-        });
-        window.addEventListener('unhandledrejection', function(e) {
-            alert("❌ 網頁執行發生錯誤 (非同步)！\n訊息: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+            console.error("網頁錯誤: ", e.message);
         });
     </script>
 
+    <!-- 改用穩定的 cdnjs 來源並鎖定版本 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -53,9 +51,10 @@
 </head>
 <body>
     <div id="root">
+        <!-- 加入載入畫面，避免使用者以為白屏當機 -->
         <div style="text-align: center; padding: 50px; color: #666; font-family: sans-serif;">
-            系統模組載入中，請稍候...<br>
-            <span style="font-size: 12px; color: #aaa;">若長時間停留此畫面，請確認網路連線</span>
+            <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">預測大師載入中...</div>
+            <span style="font-size: 12px; color: #aaa;">若長時間停留此畫面，請確認網路連線或強制重新整理 (Ctrl+F5)</span>
         </div>
     </div>
 
@@ -75,66 +74,16 @@
 115010740 01, 06, 11, 13, 16, 17, 18, 20, 22, 26, 34, 36, 41, 44, 47, 54, 59, 60, 69, 78
 115010739 06, 09, 12, 16, 18, 24, 40, 41, 46, 47, 49, 50, 53, 54, 60, 62, 64, 66, 68, 79`;
 
-        // 提取 Icons 元件到全域
         const IconDatabase = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>;
         const IconActivity = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
         const IconTarget = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>;
         const IconNetwork = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg>;
         const IconTrendingUp = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>;
+        const IconRefreshCw = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
+        const IconCloudDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 17l4 4 4-4"/><path d="M12 12v9"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>;
         const IconBookOpen = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
         const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
 
-        const NumberBadge = ({ num, source, size = "normal" }) => {
-            if (!num) return null; 
-            const sizeClass = size === "small" ? "w-7 h-7 text-xs" : "w-10 h-10 text-base";
-            let colorClass = "bg-slate-700 text-white";
-            if (source === 'N1') colorClass = "bg-red-500 shadow-red-200";
-            else if (source === 'N2') colorClass = "bg-cyan-500 shadow-cyan-200";
-            else if (source === 'N3') colorClass = "bg-green-500 shadow-green-200";
-            else if (source === 'N4') colorClass = "bg-purple-500 shadow-purple-200";
-            else if (source === 'N5') colorClass = "bg-orange-500 shadow-orange-200";
-            else if (source === 'N6') colorClass = "bg-slate-400 shadow-slate-200";
-            else if (source === 'N7') colorClass = "bg-rose-600 shadow-rose-200";
-            else if (source === 'N8') colorClass = "bg-fuchsia-600 shadow-fuchsia-200";
-            return (
-                <span className={"inline-flex items-center justify-center rounded-full font-bold shadow-md text-white " + colorClass + " " + sizeClass + " relative"}>
-                    {num.toString().padStart(2, '0')}
-                    {source && size !== "small" && <span className="absolute -top-2 -right-2 text-[8px] bg-white text-gray-800 px-1 rounded-full shadow border">{source}</span>}
-                </span>
-            );
-        };
-
-        const StarRow = ({ stars, data, customDesc }) => {
-            if (!data || !data.set1) return null;
-            return (
-                <div className="bg-white p-4 rounded-xl shadow-sm border mb-4 animate-fade-in">
-                    <div className="mb-3 border-b pb-2">
-                        <h4 className="font-bold text-gray-800 text-lg">{stars} 星精準推薦</h4>
-                        <p className="text-xs text-gray-500 mt-1">{customDesc}</p>
-                    </div>
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">主力組合</span>
-                            <div className="flex gap-1 text-[10px] font-medium flex-wrap justify-end">
-                                {data.set1.breakdown.n1 > 0 && <span className="text-red-500">核心:{data.set1.breakdown.n1}</span>}
-                                {data.set1.breakdown.n2 > 0 && <span className="text-cyan-500">回歸:{data.set1.breakdown.n2}</span>}
-                                {data.set1.breakdown.n5 > 0 && <span className="text-orange-500">破冰:{data.set1.breakdown.n5}</span>}
-                                {data.set1.breakdown.n3 > 0 && <span className="text-green-500">拖號:{data.set1.breakdown.n3}</span>}
-                                {data.set1.breakdown.n4 > 0 && <span className="text-purple-500">共伴:{data.set1.breakdown.n4}</span>}
-                                {data.set1.breakdown.n6 > 0 && <span className="text-slate-500">未開小號:{data.set1.breakdown.n6}</span>}
-                                {data.set1.breakdown.n7 > 0 && <span className="text-rose-500">5熱:{data.set1.breakdown.n7}</span>}
-                                {data.set1.breakdown.n8 > 0 && <span className="text-fuchsia-600">強尾:{data.set1.breakdown.n8}</span>}
-                            </div>
-                        </div>
-                        <div className="flex flex-wrap gap-x-2 gap-y-3">
-                            {data.set1.numbers.map((n, i) => <NumberBadge key={stars + "-A-" + n + "-" + i} num={n} source={data.set1.sources[n]} />)}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // 新增：React 錯誤邊界，防止因為單點報錯引發白屏
         class ErrorBoundary extends React.Component {
             constructor(props) {
                 super(props);
@@ -159,6 +108,53 @@
             }
         }
 
+        const NumberBadge = ({ num, source, size = "normal" }) => {
+            if (!num) return null; 
+            const sizeClass = size === "small" ? "w-7 h-7 text-xs" : "w-10 h-10 text-base";
+            let colorClass = "bg-slate-700 text-white";
+            if (source === 'N1') colorClass = "bg-red-500 shadow-red-200";
+            else if (source === 'N2') colorClass = "bg-cyan-500 shadow-cyan-200";
+            else if (source === 'N3') colorClass = "bg-green-500 shadow-green-200";
+            else if (source === 'N4') colorClass = "bg-purple-500 shadow-purple-200";
+            else if (source === 'N5') colorClass = "bg-orange-500 shadow-orange-200";
+            else if (source === 'N6') colorClass = "bg-slate-400 shadow-slate-200";
+            else if (source === 'N7') colorClass = "bg-rose-600 shadow-rose-200";
+            else if (source === 'N8') colorClass = "bg-fuchsia-600 shadow-fuchsia-200";
+            return (
+                <span className={`inline-flex items-center justify-center rounded-full font-bold shadow-md text-white ${colorClass} ${sizeClass} relative`}>
+                    {num.toString().padStart(2, '0')}
+                    {source && size !== "small" && <span className="absolute -top-2 -right-2 text-[8px] bg-white text-gray-800 px-1 rounded-full shadow border">{source}</span>}
+                </span>
+            );
+        };
+
+        const StarRow = ({ stars, data, customDesc }) => (
+            <div className="bg-white p-4 rounded-xl shadow-sm border mb-4 animate-fade-in">
+                <div className="mb-3 border-b pb-2">
+                    <h4 className="font-bold text-gray-800 text-lg">{stars} 星精準推薦</h4>
+                    <p className="text-xs text-gray-500 mt-1">{customDesc}</p>
+                </div>
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">主力組合</span>
+                        <div className="flex gap-1 text-[10px] font-medium flex-wrap justify-end">
+                            {data.set1.breakdown.n1 > 0 && <span className="text-red-500">核心:{data.set1.breakdown.n1}</span>}
+                            {data.set1.breakdown.n2 > 0 && <span className="text-cyan-500">回歸:{data.set1.breakdown.n2}</span>}
+                            {data.set1.breakdown.n5 > 0 && <span className="text-orange-500">破冰:{data.set1.breakdown.n5}</span>}
+                            {data.set1.breakdown.n3 > 0 && <span className="text-green-500">拖號:{data.set1.breakdown.n3}</span>}
+                            {data.set1.breakdown.n4 > 0 && <span className="text-purple-500">共伴:{data.set1.breakdown.n4}</span>}
+                            {data.set1.breakdown.n6 > 0 && <span className="text-slate-500">未開小號:{data.set1.breakdown.n6}</span>}
+                            {data.set1.breakdown.n7 > 0 && <span className="text-rose-500">5熱:{data.set1.breakdown.n7}</span>}
+                            {data.set1.breakdown.n8 > 0 && <span className="text-fuchsia-600">強尾:{data.set1.breakdown.n8}</span>}
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-x-2 gap-y-3">
+                        {data.set1.numbers.map((n, i) => <NumberBadge key={`${stars}-A-${n}-${i}`} num={n} source={data.set1.sources[n]} />)}
+                    </div>
+                </div>
+            </div>
+        );
+
         function App() {
             const [activeTab, setActiveTab] = useState('input');
             const [rawText, setRawText] = useState(defaultPilioData);
@@ -169,16 +165,15 @@
             const [singleNumbers, setSingleNumbers] = useState('');
 
             const parseData = (input) => {
-                if (!input) return { array: [], details: [] };
                 let text = input.replace(/['"]/g, ' ')
-                                .replace(/\d{2,4}[-/.]\d{1,2}[-/.]\d{1,2}/g, ' ') 
-                                .replace(/\d{1,2}:\d{2}(:\d{2})?/g, ' ') 
-                                .replace(/\([一二三四五六日]\)/g, ' ') 
-                                .replace(/[期別數開獎時間號碼連莊球大小單雙－\t\n第超級猜-]/g, ' ') 
-                                .replace(/(\d{40})/g, (match) => match.match(/.{2}/g).join(' ')); 
+                                .replace(/\d{2,4}[-/\.]\d{1,2}[-/\.]\d{1,2}/g, ' ')
+                                .replace(/\d{1,2}:\d{2}(:\d{2})?/g, ' ')
+                                .replace(/\([一二三四五六日]\)/g, ' ')
+                                .replace(/[期別數開獎時間號碼連莊球大小單雙－\t\n第超級猜-]/g, ' ')
+                                .replace(/(\d{40})/g, (match) => match.match(/.{2}/g).join(' '));
                 
-                text = text.replace(/\b\d{1,4}[-/.]\d{1,2}[-/.]\d{1,2}\b/g, ' '); 
-                text = text.replace(/\b\d{1,2}[-/.]\d{1,2}\b/g, ' '); 
+                text = text.replace(/\b\d{1,4}[-/\.]\d{1,2}[-/\.]\d{1,2}\b/g, ' '); 
+                text = text.replace(/\b\d{1,2}[-/\.]\d{1,2}\b/g, ' '); 
                 
                 let details = []; 
                 let parts = text.split(/\b(\d{8,10})\b/);
@@ -192,7 +187,7 @@
                             currentDraw.add(n);
                             if (currentDraw.size === 20) {
                                 details.push({ period: "未知", numbers: Array.from(currentDraw).sort((a, b) => a - b) });
-                                currentDraw = new Set(); 
+                                currentDraw = new Set();
                             }
                         }
                     }
@@ -202,7 +197,7 @@
                     for (let i = 1; i < parts.length; i += 2) {
                         let period = parts[i];
                         let block = parts[i+1];
-                        let nums = block ? block.match(/\b\d+\b/g) : null;
+                        let nums = block.match(/\b\d+\b/g);
                         if (!nums) continue;
                         let validNums = nums.map(Number).filter(n => n >= 1 && n <= 80);
                         let uniqueNums = Array.from(new Set(validNums));
@@ -232,7 +227,7 @@
             };
 
             const calculateStats = (drawData) => {
-                if (!drawData || drawData.length < 15) return null; 
+                if (drawData.length < 15) return null; 
 
                 let gaps = Array(81).fill(0);
                 
@@ -516,11 +511,10 @@
                     .slice(0, 5);
 
                 let rawTrailDetails = latestDraw.map(num => {
-                    let sortedTrails = [...Array(80).keys()].map(i => i + 1)
+                    let topNext = [...Array(80).keys()].map(i => i + 1)
                         .filter(i => i !== num)
-                        .sort((a, b) => trail[num][b] - trail[num][a]);
-                    let topNext = sortedTrails[0] || 1;
-                    return { num, topNext, count: trail[num][topNext] || 0 };
+                        .sort((a, b) => trail[num][b] - trail[num][a])[0];
+                    return { num, topNext, count: trail[num][topNext] };
                 });
 
                 let groupedTrails = {};
@@ -554,21 +548,6 @@
                 };
             };
 
-            const refreshStats = (textData) => {
-                try {
-                    const parsed = parseData(textData);
-                    setParsedCount(parsed.array.length);
-                    setParsedDetails(parsed.details);
-                    if (parsed.array.length >= 15) {
-                        setStats(calculateStats(parsed.array));
-                    } else {
-                        setStats(null);
-                    }
-                } catch (e) {
-                    console.error("重新計算狀態失敗", e);
-                }
-            };
-
             const handleProcessData = () => {
                 try {
                     const parsed = parseData(rawText);
@@ -576,14 +555,13 @@
                     setParsedDetails(parsed.details);
                     if (parsed.array.length >= 15) {
                         setStats(calculateStats(parsed.array));
-                        alert("解析成功！共成功載入 " + parsed.array.length + " 期開獎數據。");
+                        alert(`✅ 解析成功！共成功載入 ${parsed.array.length} 期開獎數據。`);
                         setActiveTab('picks');
                     } else {
-                        alert("資料不足 (" + parsed.array.length + " 期)！最少需要 15 期以進行演算法運算。");
-                        setStats(null);
+                        alert(`⚠️ 資料不足 (${parsed.array.length} 期)！`);
                     }
                 } catch (error) {
-                    alert("解析錯誤：" + error.message);
+                    alert(`❌ 解析錯誤：${error.message}`);
                 }
             };
 
@@ -594,13 +572,14 @@
                 }
 
                 let cleanText = singleNumbers.replace(/['"]/g, ' ')
-                                             .replace(/\d{2,4}[-/.]\d{1,2}[-/.]\d{1,2}/g, ' ') 
+                                             .replace(/\d{2,4}[-/\.]\d{1,2}[-/\.]\d{1,2}/g, ' ') 
                                              .replace(/\d{1,2}:\d{2}(:\d{2})?/g, ' ') 
                                              .replace(/\([一二三四五六日]\)/g, ' ') 
                                              .replace(/[期別數開獎時間號碼連莊球大小單雙－\t\n第超級猜-]/g, ' ') 
                                              .replace(/(\d{40})/g, (match) => match.match(/.{2}/g).join(' ')); 
 
                 let newDetails = [];
+
                 let parts = cleanText.split(/\b(\d{8,10})\b/);
                 
                 if (parts[0]) {
@@ -622,7 +601,7 @@
                     for (let i = 1; i < parts.length; i += 2) {
                         let period = parts[i];
                         let block = parts[i+1];
-                        let nums = block ? block.match(/\b\d+\b/g) : null;
+                        let nums = block.match(/\b\d+\b/g);
                         if (nums) {
                             let validNums = nums.map(Number).filter(n => n >= 1 && n <= 80);
                             let uniqueNums = Array.from(new Set(validNums));
@@ -651,7 +630,7 @@
                     }
                 }
 
-                const newEntriesString = newDetails.map(d => d.period + " " + d.numbers.map(n => n.toString().padStart(2, '0')).join(', ')).join('\n');
+                const newEntriesString = newDetails.map(d => `${d.period} ${d.numbers.map(n => n.toString().padStart(2, '0')).join(', ')}`).join('\n');
                 const updatedText = newEntriesString + '\n' + rawText;
                 setRawText(updatedText);
                 
@@ -661,31 +640,61 @@
                     setParsedDetails(parsed.details);
                     if (parsed.array.length >= 15) {
                         setStats(calculateStats(parsed.array));
-                        alert("成功寫入 " + newDetails.length + " 期資料！");
+                        alert(`✅ 成功寫入 ${newDetails.length} 期資料！`);
                         setSingleNumbers('');
                     } else {
-                        alert("已寫入 " + newDetails.length + " 期資料，但總期數 (" + parsed.array.length + ") 仍不足 15 期以進行分析。");
+                        alert(`已寫入 ${newDetails.length} 期資料，但總期數 (${parsed.array.length}) 仍不足 15 期以進行分析。`);
                         setSingleNumbers(''); 
                     }
                 } catch (error) {
-                    alert("解析錯誤：" + error.message);
+                    alert(`❌ 解析錯誤：${error.message}`);
                 }
             };
 
             const handleAutoUpdate = async () => {
                 setIsUpdating(true);
                 try {
-                    const docId = "1YCp4fwiSdvYvs7Nt7s04Vg3ZcswlqO2Ta2cf16L5lZg";
-                    const tabName = "歷史紀錄";
-                    const cacheBuster = new Date().getTime();
+                    const extractedId = "1YCp4fwiSdvYvs7Nt7s04Vg3ZcswlqO2Ta2cf16L5lZg";
+                    const sheetTabName = "歷史紀錄";
+                    const timestamp = new Date().getTime();
                     
-                    const directUrl = "https://docs.google.com/spreadsheets/d/" + docId + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tabName) + "&t=" + cacheBuster;
+                    const gvizUrl = `https://docs.google.com/spreadsheets/d/${extractedId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetTabName)}&t=${timestamp}`;
+                    const rawExportUrl = `https://docs.google.com/spreadsheets/d/${extractedId}/export?format=csv&t=${timestamp}`;
                     
-                    const response = await fetch(directUrl, { method: 'GET', mode: 'cors', cache: 'no-store' });
-                    if (!response.ok) throw new Error("Google 雲端無回應");
+                    const proxies = [
+                        `https://api.allorigins.win/raw?url=${encodeURIComponent(gvizUrl)}`,
+                        `https://api.allorigins.win/raw?url=${encodeURIComponent(rawExportUrl)}`,
+                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizUrl)}`,
+                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawExportUrl)}`
+                    ];
                     
-                    let text = await response.text();
-                    if (!text || text.includes("<html")) throw new Error("抓取到的試算表內容格式不正確");
+                    let text = null;
+                    let lastError = null;
+                    let bestParsedLength = 0;
+                    let bestText = null;
+
+                    for (const proxyUrl of proxies) {
+                        try {
+                            const response = await fetch(proxyUrl, { cache: 'no-store' });
+                            if (response.ok) {
+                                let tempText = await response.text();
+                                if (tempText && !tempText.includes("<html")) {
+                                    let tempParsed = parseData(tempText);
+                                    if (tempParsed.array.length > bestParsedLength) {
+                                        bestParsedLength = tempParsed.array.length;
+                                        bestText = tempText;
+                                    }
+                                    if (bestParsedLength >= 150) break;
+                                }
+                            }
+                        } catch (e) { 
+                            lastError = e;
+                            console.warn(`代理連線嘗試`, e); 
+                        }
+                    }
+
+                    text = bestText;
+                    if (!text) throw new Error(lastError ? "代理伺服器皆無法連線，請稍後再試。" : "無法取得有效的 CSV 資料。");
                     
                     setRawText(text);
                     const parsed = parseData(text);
@@ -694,21 +703,23 @@
                     
                     if (parsed.array.length >= 15) {
                         setStats(calculateStats(parsed.array));
-                        alert("✅ 雲端資料同步完成！\n成功載入了 " + parsed.array.length + " 期開獎記錄。");
+                        alert(`✅ 雲端資料同步完成！\n本次為您找回並載入了 ${parsed.array.length} 期開獎記錄。\n\n⚠️ 如果數量仍不如預期，請務必進入 Google 試算表，把「歷史紀錄」這張活頁【拖曳到最左邊的第一個位置】。`);
                         setActiveTab('picks');
                     } else {
-                        alert("⚠️ 雲端資料已載入，但只成功解析到 " + parsed.array.length + " 期。");
+                        alert(`⚠️ 雲端資料已載入，但只解析到 ${parsed.array.length} 期。\n若數量異常，請檢查試算表格式。`);
                     }
                 } catch (error) {
-                    alert("❌ 自動更新失敗: " + error.message + "\n\n目前為您切換至本地離線預設數據。");
-                    refreshStats(rawText || defaultPilioData);
-                } finally { 
-                    setIsUpdating(false); 
-                }
+                    alert(`❌ 自動更新失敗: ${error.message}`);
+                } finally { setIsUpdating(false); }
             };
 
             useEffect(() => {
-                refreshStats(defaultPilioData);
+                try {
+                    const parsed = parseData(rawText);
+                    setParsedCount(parsed.array.length);
+                    setParsedDetails(parsed.details);
+                    if (parsed.array.length >= 15) setStats(calculateStats(parsed.array));
+                } catch(e) {}
             }, []);
 
             return (
@@ -726,7 +737,6 @@
                     <div className="max-w-md mx-auto p-4">
                         {activeTab === 'input' && (
                             <div className="animate-fade-in">
-                                
                                 <div className="bg-white p-4 rounded-xl border mb-4 shadow-sm border-indigo-100">
                                     <h3 className="font-bold text-indigo-700 mb-2 text-sm flex items-center gap-2">
                                         <IconPlus /> 手動寫入最新開獎
@@ -749,9 +759,7 @@
                                     <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><IconDatabase /> 資料庫管理</h2>
 
                                     <div className="flex gap-2">
-                                        <button onClick={handleAutoUpdate} disabled={isUpdating} className={"flex-1 " + (isUpdating ? 'bg-gray-400' : 'bg-emerald-600') + " text-white font-bold py-3 rounded-lg text-sm shadow-md"}>
-                                            {isUpdating ? '同步中...' : '雲端同步'}
-                                        </button>
+                                        <button onClick={handleAutoUpdate} disabled={isUpdating} className={`flex-1 ${isUpdating ? 'bg-gray-400' : 'bg-emerald-600'} text-white font-bold py-3 rounded-lg text-sm shadow-md`}>雲端同步</button>
                                         <button onClick={handleProcessData} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-lg text-sm shadow-md">解析手動數據</button>
                                     </div>
                                     <div className="mt-4">
@@ -759,7 +767,7 @@
                                     </div>
                                 </div>
 
-                                {parsedCount > 0 && parsedDetails && parsedDetails.length > 0 && (
+                                {parsedCount > 0 && (
                                     <div className="p-4 bg-white border rounded-xl shadow-sm">
                                         <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase flex justify-between items-center">
                                             <span>🔍 最新解析預覽</span>
@@ -844,7 +852,7 @@
                                 </div>
                                 <div className="bg-white p-4 rounded-xl border shadow-sm">
                                     <h3 className="font-bold text-amber-600 mb-3 border-b pb-2">🎯 尾數強勢號 (10局佔比 25%~30%)</h3>
-                                    {stats.strongTails && stats.strongTails.length > 0 ? (
+                                    {stats.strongTails.length > 0 ? (
                                         <div className="flex flex-wrap gap-3">
                                             {stats.strongTails.map(item => (
                                                 <div key={item.tail} className="flex flex-col items-center justify-center bg-amber-50 w-14 h-14 rounded-lg border border-amber-200 shadow-sm">
@@ -909,7 +917,7 @@
                             </div>
                         )}
 
-                        {activeTab === 'details' && stats && stats.trailDetails && (
+                        {activeTab === 'details' && stats && (
                             <div className="animate-fade-in space-y-3">
                                 <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-2">
                                     <h3 className="text-sm font-bold text-indigo-800">最新期號碼牽引預測</h3>
@@ -944,27 +952,30 @@
                     </div>
 
                     <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-1 pb-safe shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-50">
-                        <button onClick={() => setActiveTab('input')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'input' ? 'text-blue-600 font-bold' : 'text-gray-400')}>
+                        <button onClick={() => setActiveTab('input')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'input' ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
                             <IconDatabase /><span className="text-[10px] whitespace-nowrap">資料庫</span>
                         </button>
-                        <button onClick={() => setActiveTab('picks')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'picks' ? 'text-blue-600 font-bold' : 'text-gray-400')}>
+                        <button onClick={() => setActiveTab('picks')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'picks' ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
                             <IconTarget /><span className="text-[10px] whitespace-nowrap">推薦</span>
                         </button>
-                        <button onClick={() => setActiveTab('logic')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'logic' ? 'text-blue-600 font-bold' : 'text-gray-400')}>
+                        <button onClick={() => setActiveTab('logic')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'logic' ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
                             <IconBookOpen /><span className="text-[10px] whitespace-nowrap">邏輯</span>
                         </button>
-                        <button onClick={() => setActiveTab('trends')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'trends' ? 'text-indigo-600 font-bold' : 'text-gray-400')}>
+                        <button onClick={() => setActiveTab('trends')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'trends' ? 'text-indigo-600 font-bold' : 'text-gray-400'}`}>
                             <IconTrendingUp /><span className="text-[10px] whitespace-nowrap">趨勢</span>
                         </button>
-                        <button onClick={() => setActiveTab('details')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'details' ? 'text-teal-600 font-bold' : 'text-gray-400')}>
+                        <button onClick={() => setActiveTab('details')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'details' ? 'text-teal-600 font-bold' : 'text-gray-400'}`}>
                             <IconNetwork /><span className="text-[10px] whitespace-nowrap">牽引</span>
                         </button>
+                        <a href="https://kokko-travel.com/binggo/money.html" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 w-1/5 py-2 text-amber-500 hover:text-amber-600 font-bold">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 18V6"></path><path d="M9 14.5c0 1.5 1.5 2.5 3 2.5s3-1 3-2.5-1.5-2.5-3-2.5-3-1-3-2.5 1.5-2.5 3-2.5 3 1 3 2.5"></path></svg>
+                            <span className="text-[10px] whitespace-nowrap">招財指南</span>
+                        </a>
                     </div>
                 </div>
             );
         }
 
-        // 使用 ErrorBoundary 將應用程式包覆起來，若未來有錯誤可直接在畫面顯示
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(
             <ErrorBoundary>
