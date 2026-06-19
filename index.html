@@ -658,27 +658,31 @@
                     const sheetTabName = "歷史紀錄";
                     const timestamp = new Date().getTime();
                     
-                    const gvizUrl = `https://docs.google.com/spreadsheets/d/${extractedId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetTabName)}&t=${timestamp}`;
-                    const rawExportUrl = `https://docs.google.com/spreadsheets/d/${extractedId}/export?format=csv&t=${timestamp}`;
+                    const directGvizUrl = `https://docs.google.com/spreadsheets/d/${extractedId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetTabName)}&t=${timestamp}`;
+                    const directExportUrl = `https://docs.google.com/spreadsheets/d/${extractedId}/export?format=csv&t=${timestamp}`;
                     
-                    const proxies = [
-                        `https://api.allorigins.win/raw?url=${encodeURIComponent(gvizUrl)}`,
-                        `https://api.allorigins.win/raw?url=${encodeURIComponent(rawExportUrl)}`,
-                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizUrl)}`,
-                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawExportUrl)}`
+                    // 改變策略：優先「直接連線」Google，如果失敗才退回使用代理伺服器
+                    const fetchSources = [
+                        { url: directGvizUrl, type: 'direct' },
+                        { url: directExportUrl, type: 'direct' },
+                        { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(directGvizUrl)}`, type: 'proxy' },
+                        { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(directExportUrl)}`, type: 'proxy' }
                     ];
                     
-                    let text = null;
-                    let lastError = null;
                     let bestParsedLength = 0;
                     let bestText = null;
+                    let lastError = null;
 
-                    for (const proxyUrl of proxies) {
+                    for (const source of fetchSources) {
                         try {
-                            const response = await fetch(proxyUrl, { cache: 'no-store' });
+                            // 關鍵：直接連線時加入 credentials: 'omit'，避免 Google 強制登入重新導向引發跨域錯誤
+                            const options = source.type === 'direct' ? { cache: 'no-store', credentials: 'omit' } : { cache: 'no-store' };
+                            const response = await fetch(source.url, options);
+                            
                             if (response.ok) {
                                 let tempText = await response.text();
-                                if (tempText && !tempText.includes("<html")) {
+                                // 確保回傳的不是 Google 登入畫面或其他無效的 HTML
+                                if (tempText && !tempText.includes("<html") && !tempText.includes("<!DOCTYPE")) {
                                     let tempParsed = parseData(tempText);
                                     if (tempParsed.array.length > bestParsedLength) {
                                         bestParsedLength = tempParsed.array.length;
@@ -689,15 +693,16 @@
                             }
                         } catch (e) { 
                             lastError = e;
-                            console.warn(`代理連線嘗試`, e); 
+                            console.warn(`[${source.type}] 連線嘗試失敗:`, source.url, e); 
                         }
                     }
 
-                    text = bestText;
-                    if (!text) throw new Error(lastError ? "代理伺服器皆無法連線，請稍後再試。" : "無法取得有效的 CSV 資料。");
+                    if (!bestText) {
+                        throw new Error("無法取得資料。請確認您的 Google 試算表共用設定已開啟為「知道連結的任何人均可檢視」。");
+                    }
                     
-                    setRawText(text);
-                    const parsed = parseData(text);
+                    setRawText(bestText);
+                    const parsed = parseData(bestText);
                     setParsedCount(parsed.array.length);
                     setParsedDetails(parsed.details);
                     
