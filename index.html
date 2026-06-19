@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
@@ -5,10 +6,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>BINGO AI預測大師</title>
+
+    <!-- 🚨 終極防護攔截器：網頁出錯絕對不允許白屏，一定要跳出錯誤訊息 -->
+    <script>
+        window.addEventListener('error', function(e) {
+            alert("❌ 網頁執行發生錯誤！\n訊息: " + e.message + "\n檔案: " + e.filename + "\n行號: " + e.lineno);
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            alert("❌ 網頁執行發生錯誤 (非同步)！\n訊息: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+        });
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
 
     <style>
         body {
@@ -40,7 +52,12 @@
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <div style="text-align: center; padding: 50px; color: #666; font-family: sans-serif;">
+            系統模組載入中，請稍候...<br>
+            <span style="font-size: 12px; color: #aaa;">若長時間停留此畫面，請確認網路連線</span>
+        </div>
+    </div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -58,15 +75,89 @@
 115010740 01, 06, 11, 13, 16, 17, 18, 20, 22, 26, 34, 36, 41, 44, 47, 54, 59, 60, 69, 78
 115010739 06, 09, 12, 16, 18, 24, 40, 41, 46, 47, 49, 50, 53, 54, 60, 62, 64, 66, 68, 79`;
 
+        // 提取 Icons 元件到全域
         const IconDatabase = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>;
         const IconActivity = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
         const IconTarget = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>;
         const IconNetwork = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg>;
         const IconTrendingUp = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>;
-        const IconRefreshCw = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
-        const IconCloudDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 17l4 4 4-4"/><path d="M12 12v9"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>;
         const IconBookOpen = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
         const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+
+        const NumberBadge = ({ num, source, size = "normal" }) => {
+            if (!num) return null; 
+            const sizeClass = size === "small" ? "w-7 h-7 text-xs" : "w-10 h-10 text-base";
+            let colorClass = "bg-slate-700 text-white";
+            if (source === 'N1') colorClass = "bg-red-500 shadow-red-200";
+            else if (source === 'N2') colorClass = "bg-cyan-500 shadow-cyan-200";
+            else if (source === 'N3') colorClass = "bg-green-500 shadow-green-200";
+            else if (source === 'N4') colorClass = "bg-purple-500 shadow-purple-200";
+            else if (source === 'N5') colorClass = "bg-orange-500 shadow-orange-200";
+            else if (source === 'N6') colorClass = "bg-slate-400 shadow-slate-200";
+            else if (source === 'N7') colorClass = "bg-rose-600 shadow-rose-200";
+            else if (source === 'N8') colorClass = "bg-fuchsia-600 shadow-fuchsia-200";
+            return (
+                <span className={"inline-flex items-center justify-center rounded-full font-bold shadow-md text-white " + colorClass + " " + sizeClass + " relative"}>
+                    {num.toString().padStart(2, '0')}
+                    {source && size !== "small" && <span className="absolute -top-2 -right-2 text-[8px] bg-white text-gray-800 px-1 rounded-full shadow border">{source}</span>}
+                </span>
+            );
+        };
+
+        const StarRow = ({ stars, data, customDesc }) => {
+            if (!data || !data.set1) return null;
+            return (
+                <div className="bg-white p-4 rounded-xl shadow-sm border mb-4 animate-fade-in">
+                    <div className="mb-3 border-b pb-2">
+                        <h4 className="font-bold text-gray-800 text-lg">{stars} 星精準推薦</h4>
+                        <p className="text-xs text-gray-500 mt-1">{customDesc}</p>
+                    </div>
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">主力組合</span>
+                            <div className="flex gap-1 text-[10px] font-medium flex-wrap justify-end">
+                                {data.set1.breakdown.n1 > 0 && <span className="text-red-500">核心:{data.set1.breakdown.n1}</span>}
+                                {data.set1.breakdown.n2 > 0 && <span className="text-cyan-500">回歸:{data.set1.breakdown.n2}</span>}
+                                {data.set1.breakdown.n5 > 0 && <span className="text-orange-500">破冰:{data.set1.breakdown.n5}</span>}
+                                {data.set1.breakdown.n3 > 0 && <span className="text-green-500">拖號:{data.set1.breakdown.n3}</span>}
+                                {data.set1.breakdown.n4 > 0 && <span className="text-purple-500">共伴:{data.set1.breakdown.n4}</span>}
+                                {data.set1.breakdown.n6 > 0 && <span className="text-slate-500">未開小號:{data.set1.breakdown.n6}</span>}
+                                {data.set1.breakdown.n7 > 0 && <span className="text-rose-500">5熱:{data.set1.breakdown.n7}</span>}
+                                {data.set1.breakdown.n8 > 0 && <span className="text-fuchsia-600">強尾:{data.set1.breakdown.n8}</span>}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-x-2 gap-y-3">
+                            {data.set1.numbers.map((n, i) => <NumberBadge key={stars + "-A-" + n + "-" + i} num={n} source={data.set1.sources[n]} />)}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 新增：React 錯誤邊界，防止因為單點報錯引發白屏
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error: error };
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="p-5 text-red-600 bg-red-50 min-h-screen">
+                            <h2 className="text-xl font-bold mb-2">⚠️ React 渲染器遭遇錯誤</h2>
+                            <p className="text-sm">系統在顯示畫面時發生例外狀況，請聯絡開發者或重新整理網頁。</p>
+                            <pre className="text-xs bg-white p-3 mt-4 border border-red-200 rounded overflow-auto">
+                                {this.state.error && this.state.error.toString()}
+                            </pre>
+                        </div>
+                    );
+                }
+                return this.props.children; 
+            }
+        }
 
         function App() {
             const [activeTab, setActiveTab] = useState('input');
@@ -75,28 +166,23 @@
             const [parsedCount, setParsedCount] = useState(0);
             const [isUpdating, setIsUpdating] = useState(false);
             const [parsedDetails, setParsedDetails] = useState([]);
-            
-            // 單一欄位狀態
             const [singleNumbers, setSingleNumbers] = useState('');
 
             const parseData = (input) => {
-                // 終極清理引擎：剃除日期、時間、所有標題雜字，並拆散相黏的 40 碼長字串
+                if (!input) return { array: [], details: [] };
                 let text = input.replace(/['"]/g, ' ')
-                                .replace(/\d{2,4}[-/\.]\d{1,2}[-/\.]\d{1,2}/g, ' ') // 移除日期 115/02/25
-                                .replace(/\d{1,2}:\d{2}(:\d{2})?/g, ' ') // 移除時間 12:30
-                                .replace(/\([一二三四五六日]\)/g, ' ') // 移除星期 (三)
-                                .replace(/[期別數開獎時間號碼連莊球大小單雙－\t\n第超級猜-]/g, ' ') // 移除所有干擾中文字與換行
-                                .replace(/(\d{40})/g, (match) => match.match(/.{2}/g).join(' ')); // 強制拆分 40 碼相黏情況
+                                .replace(/\d{2,4}[-/.]\d{1,2}[-/.]\d{1,2}/g, ' ') 
+                                .replace(/\d{1,2}:\d{2}(:\d{2})?/g, ' ') 
+                                .replace(/\([一二三四五六日]\)/g, ' ') 
+                                .replace(/[期別數開獎時間號碼連莊球大小單雙－\t\n第超級猜-]/g, ' ') 
+                                .replace(/(\d{40})/g, (match) => match.match(/.{2}/g).join(' ')); 
                 
-                text = text.replace(/\b\d{1,4}[-/\.]\d{1,2}[-/\.]\d{1,2}\b/g, ' '); 
-                text = text.replace(/\b\d{1,2}[-/\.]\d{1,2}\b/g, ' '); 
+                text = text.replace(/\b\d{1,4}[-/.]\d{1,2}[-/.]\d{1,2}\b/g, ' '); 
+                text = text.replace(/\b\d{1,2}[-/.]\d{1,2}\b/g, ' '); 
                 
                 let details = []; 
-                
-                // 主要防禦：用 8~10 碼大數字（期數特徵）作為絕對斷點切分區塊
                 let parts = text.split(/\b(\d{8,10})\b/);
                 
-                // 1. 處理無期號的開頭孤立資料 (例如純手動輸入的無期數資料)
                 if (parts[0]) {
                     let nums = parts[0].match(/\b\d+\b/g);
                     if (nums) {
@@ -106,36 +192,32 @@
                             currentDraw.add(n);
                             if (currentDraw.size === 20) {
                                 details.push({ period: "未知", numbers: Array.from(currentDraw).sort((a, b) => a - b) });
-                                currentDraw = new Set(); // 滿20顆打包，準備下一期
+                                currentDraw = new Set(); 
                             }
                         }
                     }
                 }
 
-                // 2. 處理帶有期號的常規資料
                 if (parts.length > 1) {
                     for (let i = 1; i < parts.length; i += 2) {
                         let period = parts[i];
                         let block = parts[i+1];
-                        let nums = block.match(/\b\d+\b/g);
+                        let nums = block ? block.match(/\b\d+\b/g) : null;
                         if (!nums) continue;
                         let validNums = nums.map(Number).filter(n => n >= 1 && n <= 80);
                         let uniqueNums = Array.from(new Set(validNums));
                         if (uniqueNums.length >= 20) {
-                            // 只精確取前 20 顆號碼，自動拋棄尾端連莊號等干擾
                             details.push({ period, numbers: uniqueNums.slice(0, 20).sort((a, b) => a - b) });
                         }
                     }
                 }
                 
-                // 過濾重複資料，保留最新
                 let uniqueMap = new Map();
                 details.forEach(d => {
                     uniqueMap.set(d.period !== "未知" ? d.period : d.numbers.join(','), d);
                 });
                 details = Array.from(uniqueMap.values());
                 
-                // 期數排序：確保數字越大(最新)在陣列越後面
                 let hasValidPeriod = details.some(d => d.period !== "未知");
                 if (hasValidPeriod) {
                     details.sort((a, b) => (parseInt(a.period) || 0) - (parseInt(b.period) || 0));
@@ -143,7 +225,6 @@
                     details.reverse();
                 }
                 
-                // 導入上限修改為 200 期
                 if (details.length > 200) {
                     details = details.slice(-200);
                 }
@@ -151,16 +232,14 @@
             };
 
             const calculateStats = (drawData) => {
-                if (drawData.length < 15) return null; 
+                if (!drawData || drawData.length < 15) return null; 
 
                 let gaps = Array(81).fill(0);
                 
-                // N1, N2: 近 10 期溫熱號與回歸號
                 let recent10DrawsN1 = drawData.slice(-10);
                 let recent10Freqs = Array(81).fill(0);
                 recent10DrawsN1.forEach(d => d.forEach(n => recent10Freqs[n]++));
 
-                // N7: 近 5 期熱門號
                 let recent5Draws = drawData.slice(-5);
                 let recent5Freqs = Array(81).fill(0);
                 recent5Draws.forEach(d => d.forEach(n => recent5Freqs[n]++));
@@ -219,16 +298,14 @@
                     }
                 }
 
-                // --- 修改：N3 (次高頻拖號) 邏輯 ---
                 let n3Counts = Array(81).fill(0);
                 latestDraw.forEach(m => {
                     let sortedTrails = [...Array(80).keys()].map(i => i + 1)
                         .filter(n => n !== m)
                         .sort((a, b) => trail[m][b] - trail[m][a]);
-                    let secondHighest = sortedTrails[1]; // 取得次高頻 (索引 1)
+                    let secondHighest = sortedTrails[1]; 
                     if (secondHighest) n3Counts[secondHighest]++;
                 });
-                // 優先依照次高頻被指向的次數排序，次數相同則依總牽引分數排序
                 let n3Candidates = [...Array(80).keys()].map(i => i + 1).sort((a, b) => n3Counts[b] - n3Counts[a] || trailScores[b] - trailScores[a]);
                 
                 let n2Candidates = [...Array(80).keys()].map(i => i + 1).filter(i => recent10Freqs[i] === 2 && gaps[i] > 1).sort((a, b) => gaps[b] - gaps[a]); 
@@ -239,7 +316,6 @@
                 let icebreakerCandidates = [...Array(80).keys()].map(i => i + 1).sort((a, b) => gaps[b] - gaps[a]);
                 let hot5Candidates = [...Array(80).keys()].map(i => i + 1).sort((a, b) => recent5Freqs[b] - recent5Freqs[a]);
                 
-                // N6 新定義: 近 2 期沒開，且號碼落在 1-10 之間
                 let notOpenedLast2_1to10_Candidates = [...Array(10).keys()].map(i => i + 1)
                     .filter(n => !latestDraw.includes(n) && !prevDraw.includes(n))
                     .sort((a, b) => gaps[b] - gaps[a]);
@@ -252,7 +328,6 @@
                     coreIntersectionPicks = [...coreIntersectionPicks, ...extraN3];
                 }
 
-                // --- 移至上方：尾數強勢號 (10局內佔比 25%~30%) ---
                 let recent10Draws = drawData.slice(-10);
                 let tailCounts = Array(10).fill(0);
                 recent10Draws.forEach(draw => {
@@ -268,7 +343,6 @@
                 }
                 strongTails.sort((a, b) => b.percentage - a.percentage);
 
-                // --- 新增：N8 強尾候選號 (近5期小於5次 + 落在強勢尾數) ---
                 let validTails = strongTails.map(t => t.tail);
                 let n8Candidates = [...Array(80).keys()].map(i => i + 1)
                     .filter(num => recent5Freqs[num] > 0 && recent5Freqs[num] < 5)
@@ -287,7 +361,6 @@
                             sources[found] = srcType;
                             breakdown[srcType.toLowerCase()]++;
                         } else {
-                            // 絕對備援
                             let fallback = [...Array(80).keys()].map(i=>i+1).find(x => !selected.has(x));
                             if (fallback) {
                                 selected.add(fallback);
@@ -301,15 +374,11 @@
                         for(let i=0; i<count; i++) getSafe(list, srcType);
                     };
 
-                    // --- 新增：動態防重複尾數 N8 選擇器 ---
                     const pickN8WithDeduplication = () => {
-                        // 1. 取得目前已選號碼的尾數
                         let usedTails = new Set(Array.from(selected).map(n => n % 10));
-                        // 2. 找出還沒被用過的強勢尾數
                         let availableTails = strongTails.map(t => t.tail).filter(t => !usedTails.has(t));
                         
                         if (availableTails.length > 0) {
-                            // 優先嘗試：尾數沒重複，且頻率大於0小於5
                             let idealN8 = [...Array(80).keys()].map(i => i + 1)
                                 .filter(n => !selected.has(n))
                                 .filter(n => availableTails.includes(n % 10))
@@ -320,7 +389,6 @@
                                 getSafe(idealN8, 'N8');
                                 return true;
                             } else {
-                                // 備援：若無符合高頻條件者，只要尾數是可用強尾即可(不限頻率條件)
                                 let fallbackN8 = [...Array(80).keys()].map(i => i + 1)
                                     .filter(n => !selected.has(n))
                                     .filter(n => availableTails.includes(n % 10))
@@ -334,7 +402,6 @@
                         return false;
                     };
 
-                    // 基礎核心 2 顆 (N1)
                     let baseCores = coreIntersectionPicks.slice(0, 2);
                     
                     if (targetStars === 2) {
@@ -361,14 +428,13 @@
                         pickByCount(hot5Candidates, 'N7', 2);
                         pickByCount(n3Candidates, 'N3', 1);
                         if (!pickN8WithDeduplication()) {
-                            getSafe(n3Candidates, 'N3'); // N8 備援
+                            getSafe(n3Candidates, 'N3'); 
                         }
                         let c1 = [...Array(80).keys()].map(i => i + 1).sort((a, b) => Array.from(selected).reduce((sum, s) => sum + cov[s][b], 0) - Array.from(selected).reduce((sum, s) => sum + cov[s][a], 0));
-                        getSafe(c1, 'N4'); // 共伴 N4
-                        pickByCount(icebreakerCandidates, 'N5', 1); // 破冰 N5
+                        getSafe(c1, 'N4'); 
+                        pickByCount(icebreakerCandidates, 'N5', 1); 
                     }
                     else if (targetStars === 7) {
-                        // 7星：拖號2, 破冰2, 共伴2, 近2期未開小號(1)
                         pickByCount(n3Candidates, 'N3', 2);
                         pickByCount(icebreakerCandidates, 'N5', 2);
                         pickByCount(notOpenedLast2_1to10_Candidates, 'N6', 1);
@@ -376,7 +442,6 @@
                         pickByCount(c1, 'N4', 2);
                     }
                     else if (targetStars === 8) {
-                        // 8星：拖號2, 破冰2, 共伴1, 近2期未開小號(1), 5熱(1), 溫熱(1)
                         pickByCount(n3Candidates, 'N3', 2);
                         pickByCount(icebreakerCandidates, 'N5', 2);
                         pickByCount(notOpenedLast2_1to10_Candidates, 'N6', 1);
@@ -386,7 +451,6 @@
                         pickByCount(coreIntersectionPicks, 'N1', 1);
                     }
                     else if (targetStars === 9) {
-                        // 9星：拖號2, 破冰2, 共伴1, 近2期未開小號(2), 5熱(2)
                         pickByCount(n3Candidates, 'N3', 2);
                         pickByCount(icebreakerCandidates, 'N5', 2);
                         pickByCount(notOpenedLast2_1to10_Candidates, 'N6', 2);
@@ -395,7 +459,6 @@
                         pickByCount(c1, 'N4', 1);
                     }
                     else if (targetStars === 10) {
-                        // 10星默認: 核心(2)+回歸(1)+破冰(1)+共伴(2)+拖號(2)+未開小號(1)+5熱(1)
                         pickByCount(coreIntersectionPicks, 'N1', 2);
                         pickByCount(n2Candidates, 'N2', 1);
                         pickByCount(icebreakerCandidates, 'N5', 1);
@@ -406,7 +469,6 @@
                         let c1 = [...Array(80).keys()].map(i => i + 1).sort((a, b) => Array.from(selected).reduce((sum, s) => sum + cov[s][b], 0) - Array.from(selected).reduce((sum, s) => sum + cov[s][a], 0));
                         pickByCount(c1, 'N4', 2);
 
-                        // 絕對備援機制，確保一定會塞滿 10 顆
                         let rest = [...Array(80).keys()].map(i => i + 1).sort((a, b) => trailScores[b] - trailScores[a]);
                         while(selected.size < 10) getSafe(rest, 'N3');
                     }
@@ -414,7 +476,6 @@
                     return { set1: { numbers: Array.from(selected).filter(n => n).sort((a, b) => a - b), sources, breakdown } };
                 };
 
-                // --- 新增: 趨勢與牽引頁面所需數據 ---
                 let recent20Draws = drawData.slice(-20);
                 let recent20Freqs = Array(81).fill(0);
                 recent20Draws.forEach(d => d.forEach(n => recent20Freqs[n]++));
@@ -448,7 +509,6 @@
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 3);
 
-                // --- 新增：近 5 期高頻 Top 5 (需小於5次) ---
                 let hot5_top5 = [...Array(80).keys()].map(i => i + 1)
                     .map(num => ({ num, count: recent5Freqs[num] }))
                     .filter(item => item.count < 5)
@@ -456,10 +516,11 @@
                     .slice(0, 5);
 
                 let rawTrailDetails = latestDraw.map(num => {
-                    let topNext = [...Array(80).keys()].map(i => i + 1)
+                    let sortedTrails = [...Array(80).keys()].map(i => i + 1)
                         .filter(i => i !== num)
-                        .sort((a, b) => trail[num][b] - trail[num][a])[0];
-                    return { num, topNext, count: trail[num][topNext] };
+                        .sort((a, b) => trail[num][b] - trail[num][a]);
+                    let topNext = sortedTrails[0] || 1;
+                    return { num, topNext, count: trail[num][topNext] || 0 };
                 });
 
                 let groupedTrails = {};
@@ -472,7 +533,6 @@
                 });
 
                 let trailDetails = Object.values(groupedTrails).sort((a, b) => b.sources.length - a.sources.length || b.totalCount - a.totalCount);
-                // ------------------------------------
 
                 return { 
                     star2: generateStars(2), star3: generateStars(3), star4: generateStars(4), 
@@ -494,6 +554,21 @@
                 };
             };
 
+            const refreshStats = (textData) => {
+                try {
+                    const parsed = parseData(textData);
+                    setParsedCount(parsed.array.length);
+                    setParsedDetails(parsed.details);
+                    if (parsed.array.length >= 15) {
+                        setStats(calculateStats(parsed.array));
+                    } else {
+                        setStats(null);
+                    }
+                } catch (e) {
+                    console.error("重新計算狀態失敗", e);
+                }
+            };
+
             const handleProcessData = () => {
                 try {
                     const parsed = parseData(rawText);
@@ -501,13 +576,14 @@
                     setParsedDetails(parsed.details);
                     if (parsed.array.length >= 15) {
                         setStats(calculateStats(parsed.array));
-                        alert(`✅ 解析成功！共成功載入 ${parsed.array.length} 期開獎數據。`);
+                        alert("解析成功！共成功載入 " + parsed.array.length + " 期開獎數據。");
                         setActiveTab('picks');
                     } else {
-                        alert(`⚠️ 資料不足 (${parsed.array.length} 期)！`);
+                        alert("資料不足 (" + parsed.array.length + " 期)！最少需要 15 期以進行演算法運算。");
+                        setStats(null);
                     }
                 } catch (error) {
-                    alert(`❌ 解析錯誤：${error.message}`);
+                    alert("解析錯誤：" + error.message);
                 }
             };
 
@@ -517,20 +593,16 @@
                     return;
                 }
 
-                // 1. 執行終極清理：剃除日期、時間、所有標題雜字，並拆散相黏的 40 碼長字串
                 let cleanText = singleNumbers.replace(/['"]/g, ' ')
-                                             .replace(/\d{2,4}[-/\.]\d{1,2}[-/\.]\d{1,2}/g, ' ') // 移除日期 115/02/25
-                                             .replace(/\d{1,2}:\d{2}(:\d{2})?/g, ' ') // 移除時間 12:30
-                                             .replace(/\([一二三四五六日]\)/g, ' ') // 移除星期 (三)
-                                             .replace(/[期別數開獎時間號碼連莊球大小單雙－\t\n第超級猜-]/g, ' ') // 移除標題與無用字眼
-                                             .replace(/(\d{40})/g, (match) => match.match(/.{2}/g).join(' ')); // 處理全黏在一起的號碼
+                                             .replace(/\d{2,4}[-/.]\d{1,2}[-/.]\d{1,2}/g, ' ') 
+                                             .replace(/\d{1,2}:\d{2}(:\d{2})?/g, ' ') 
+                                             .replace(/\([一二三四五六日]\)/g, ' ') 
+                                             .replace(/[期別數開獎時間號碼連莊球大小單雙－\t\n第超級猜-]/g, ' ') 
+                                             .replace(/(\d{40})/g, (match) => match.match(/.{2}/g).join(' ')); 
 
                 let newDetails = [];
-
-                // 2. 智慧拆分邏輯：找大數字期號當斷點
                 let parts = cleanText.split(/\b(\d{8,10})\b/);
                 
-                // 無期號首段處理
                 if (parts[0]) {
                     let nums = parts[0].match(/\b\d+\b/g);
                     if (nums) {
@@ -546,12 +618,11 @@
                     }
                 }
 
-                // 帶期號處理
                 if (parts.length > 1) {
                     for (let i = 1; i < parts.length; i += 2) {
                         let period = parts[i];
                         let block = parts[i+1];
-                        let nums = block.match(/\b\d+\b/g);
+                        let nums = block ? block.match(/\b\d+\b/g) : null;
                         if (nums) {
                             let validNums = nums.map(Number).filter(n => n >= 1 && n <= 80);
                             let uniqueNums = Array.from(new Set(validNums));
@@ -567,7 +638,6 @@
                     return;
                 }
 
-                // 3. 自動補齊「未知」期別
                 let maxPeriod = 0;
                 if (parsedDetails.length > 0) {
                     maxPeriod = Math.max(...parsedDetails.map(d => parseInt(d.period) || 0));
@@ -581,8 +651,7 @@
                     }
                 }
 
-                // 4. 將解析出的資料格式化並推入資料庫
-                const newEntriesString = newDetails.map(d => `${d.period} ${d.numbers.map(n => n.toString().padStart(2, '0')).join(', ')}`).join('\n');
+                const newEntriesString = newDetails.map(d => d.period + " " + d.numbers.map(n => n.toString().padStart(2, '0')).join(', ')).join('\n');
                 const updatedText = newEntriesString + '\n' + rawText;
                 setRawText(updatedText);
                 
@@ -592,66 +661,31 @@
                     setParsedDetails(parsed.details);
                     if (parsed.array.length >= 15) {
                         setStats(calculateStats(parsed.array));
-                        alert(`✅ 成功寫入 ${newDetails.length} 期資料！`);
+                        alert("成功寫入 " + newDetails.length + " 期資料！");
                         setSingleNumbers('');
                     } else {
-                        alert(`已寫入 ${newDetails.length} 期資料，但總期數 (${parsed.array.length}) 仍不足 15 期以進行分析。`);
+                        alert("已寫入 " + newDetails.length + " 期資料，但總期數 (" + parsed.array.length + ") 仍不足 15 期以進行分析。");
                         setSingleNumbers(''); 
                     }
                 } catch (error) {
-                    alert(`❌ 解析錯誤：${error.message}`);
+                    alert("解析錯誤：" + error.message);
                 }
             };
 
             const handleAutoUpdate = async () => {
                 setIsUpdating(true);
                 try {
-                    const extractedId = "1YCp4fwiSdvYvs7Nt7s04Vg3ZcswlqO2Ta2cf16L5lZg";
-                    const sheetTabName = "歷史紀錄";
-                    const timestamp = new Date().getTime();
+                    const docId = "1YCp4fwiSdvYvs7Nt7s04Vg3ZcswlqO2Ta2cf16L5lZg";
+                    const tabName = "歷史紀錄";
+                    const cacheBuster = new Date().getTime();
                     
-                    // 備援通道一：Google GVIZ 指定分頁抓取
-                    const gvizUrl = `https://docs.google.com/spreadsheets/d/${extractedId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetTabName)}&t=${timestamp}`;
+                    const directUrl = "https://docs.google.com/spreadsheets/d/" + docId + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tabName) + "&t=" + cacheBuster;
                     
-                    // 備援通道二：全域強制匯出 (解決 gviz 空白行中斷問題，但只能抓表單第一頁)
-                    const rawExportUrl = `https://docs.google.com/spreadsheets/d/${extractedId}/export?format=csv&t=${timestamp}`;
+                    const response = await fetch(directUrl, { method: 'GET', mode: 'cors', cache: 'no-store' });
+                    if (!response.ok) throw new Error("Google 雲端無回應");
                     
-                    const proxies = [
-                        `https://api.allorigins.win/raw?url=${encodeURIComponent(gvizUrl)}`,
-                        `https://api.allorigins.win/raw?url=${encodeURIComponent(rawExportUrl)}`,
-                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizUrl)}`,
-                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawExportUrl)}`
-                    ];
-                    
-                    let text = null;
-                    let lastError = null;
-                    let bestParsedLength = 0;
-                    let bestText = null;
-
-                    // 智慧輪詢：測試哪條線路能為您抓到最多的有效資料
-                    for (const proxyUrl of proxies) {
-                        try {
-                            const response = await fetch(proxyUrl, { cache: 'no-store' });
-                            if (response.ok) {
-                                let tempText = await response.text();
-                                if (tempText && !tempText.includes("<html")) {
-                                    let tempParsed = parseData(tempText);
-                                    if (tempParsed.array.length > bestParsedLength) {
-                                        bestParsedLength = tempParsed.array.length;
-                                        bestText = tempText;
-                                    }
-                                    // 只要能突破之前的 107 限制抓到 150 期以上，就直接採用
-                                    if (bestParsedLength >= 150) break;
-                                }
-                            }
-                        } catch (e) { 
-                            lastError = e;
-                            console.warn(`代理連線嘗試`, e); 
-                        }
-                    }
-
-                    text = bestText;
-                    if (!text) throw new Error(lastError ? "代理伺服器皆無法連線，請稍後再試。" : "無法取得有效的 CSV 資料。");
+                    let text = await response.text();
+                    if (!text || text.includes("<html")) throw new Error("抓取到的試算表內容格式不正確");
                     
                     setRawText(text);
                     const parsed = parseData(text);
@@ -660,71 +694,22 @@
                     
                     if (parsed.array.length >= 15) {
                         setStats(calculateStats(parsed.array));
-                        alert(`✅ 雲端資料同步完成！\n本次為您找回並載入了 ${parsed.array.length} 期開獎記錄。\n\n⚠️ 如果數量仍不如預期，請務必進入 Google 試算表，把「歷史紀錄」這張活頁【拖曳到最左邊的第一個位置】。`);
+                        alert("✅ 雲端資料同步完成！\n成功載入了 " + parsed.array.length + " 期開獎記錄。");
                         setActiveTab('picks');
                     } else {
-                        alert(`⚠️ 雲端資料已載入，但只解析到 ${parsed.array.length} 期。\n若數量異常，請檢查試算表格式。`);
+                        alert("⚠️ 雲端資料已載入，但只成功解析到 " + parsed.array.length + " 期。");
                     }
                 } catch (error) {
-                    alert(`❌ 自動更新失敗: ${error.message}`);
-                } finally { setIsUpdating(false); }
+                    alert("❌ 自動更新失敗: " + error.message + "\n\n目前為您切換至本地離線預設數據。");
+                    refreshStats(rawText || defaultPilioData);
+                } finally { 
+                    setIsUpdating(false); 
+                }
             };
 
             useEffect(() => {
-                try {
-                    const parsed = parseData(rawText);
-                    setParsedCount(parsed.array.length);
-                    setParsedDetails(parsed.details);
-                    if (parsed.array.length >= 15) setStats(calculateStats(parsed.array));
-                } catch(e) {}
+                refreshStats(defaultPilioData);
             }, []);
-
-            const NumberBadge = ({ num, source, size = "normal" }) => {
-                if (!num) return null; 
-                const sizeClass = size === "small" ? "w-7 h-7 text-xs" : "w-10 h-10 text-base";
-                let colorClass = "bg-slate-700 text-white";
-                if (source === 'N1') colorClass = "bg-red-500 shadow-red-200";
-                else if (source === 'N2') colorClass = "bg-cyan-500 shadow-cyan-200";
-                else if (source === 'N3') colorClass = "bg-green-500 shadow-green-200";
-                else if (source === 'N4') colorClass = "bg-purple-500 shadow-purple-200";
-                else if (source === 'N5') colorClass = "bg-orange-500 shadow-orange-200";
-                else if (source === 'N6') colorClass = "bg-slate-400 shadow-slate-200";
-                else if (source === 'N7') colorClass = "bg-rose-600 shadow-rose-200";
-                else if (source === 'N8') colorClass = "bg-fuchsia-600 shadow-fuchsia-200";
-                return (
-                    <span className={`inline-flex items-center justify-center rounded-full font-bold shadow-md text-white ${colorClass} ${sizeClass} relative`}>
-                        {num.toString().padStart(2, '0')}
-                        {source && size !== "small" && <span className="absolute -top-2 -right-2 text-[8px] bg-white text-gray-800 px-1 rounded-full shadow border">{source}</span>}
-                    </span>
-                );
-            };
-
-            const StarRow = ({ stars, data, customDesc }) => (
-                <div className="bg-white p-4 rounded-xl shadow-sm border mb-4 animate-fade-in">
-                    <div className="mb-3 border-b pb-2">
-                        <h4 className="font-bold text-gray-800 text-lg">{stars} 星精準推薦</h4>
-                        <p className="text-xs text-gray-500 mt-1">{customDesc}</p>
-                    </div>
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">主力組合</span>
-                            <div className="flex gap-1 text-[10px] font-medium flex-wrap justify-end">
-                                {data.set1.breakdown.n1 > 0 && <span className="text-red-500">核心:{data.set1.breakdown.n1}</span>}
-                                {data.set1.breakdown.n2 > 0 && <span className="text-cyan-500">回歸:{data.set1.breakdown.n2}</span>}
-                                {data.set1.breakdown.n5 > 0 && <span className="text-orange-500">破冰:{data.set1.breakdown.n5}</span>}
-                                {data.set1.breakdown.n3 > 0 && <span className="text-green-500">拖號:{data.set1.breakdown.n3}</span>}
-                                {data.set1.breakdown.n4 > 0 && <span className="text-purple-500">共伴:{data.set1.breakdown.n4}</span>}
-                                {data.set1.breakdown.n6 > 0 && <span className="text-slate-500">未開小號:{data.set1.breakdown.n6}</span>}
-                                {data.set1.breakdown.n7 > 0 && <span className="text-rose-500">5熱:{data.set1.breakdown.n7}</span>}
-                                {data.set1.breakdown.n8 > 0 && <span className="text-fuchsia-600">強尾:{data.set1.breakdown.n8}</span>}
-                            </div>
-                        </div>
-                        <div className="flex flex-wrap gap-x-2 gap-y-3">
-                            {data.set1.numbers.map((n, i) => <NumberBadge key={`${stars}-A-${n}-${i}`} num={n} source={data.set1.sources[n]} />)}
-                        </div>
-                    </div>
-                </div>
-            );
 
             return (
                 <div className="min-h-screen pb-20 bg-slate-50">
@@ -742,7 +727,6 @@
                         {activeTab === 'input' && (
                             <div className="animate-fade-in">
                                 
-                                {/* 移至上方：單一欄位手動新增區塊 */}
                                 <div className="bg-white p-4 rounded-xl border mb-4 shadow-sm border-indigo-100">
                                     <h3 className="font-bold text-indigo-700 mb-2 text-sm flex items-center gap-2">
                                         <IconPlus /> 手動寫入最新開獎
@@ -761,12 +745,13 @@
                                     </button>
                                 </div>
 
-                                {/* 原本的資料庫管理區塊 */}
                                 <div className="bg-white p-4 rounded-xl border mb-4 shadow-sm">
                                     <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><IconDatabase /> 資料庫管理</h2>
 
                                     <div className="flex gap-2">
-                                        <button onClick={handleAutoUpdate} disabled={isUpdating} className={`flex-1 ${isUpdating ? 'bg-gray-400' : 'bg-emerald-600'} text-white font-bold py-3 rounded-lg text-sm shadow-md`}>雲端同步</button>
+                                        <button onClick={handleAutoUpdate} disabled={isUpdating} className={"flex-1 " + (isUpdating ? 'bg-gray-400' : 'bg-emerald-600') + " text-white font-bold py-3 rounded-lg text-sm shadow-md"}>
+                                            {isUpdating ? '同步中...' : '雲端同步'}
+                                        </button>
                                         <button onClick={handleProcessData} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-lg text-sm shadow-md">解析手動數據</button>
                                     </div>
                                     <div className="mt-4">
@@ -774,7 +759,7 @@
                                     </div>
                                 </div>
 
-                                {parsedCount > 0 && (
+                                {parsedCount > 0 && parsedDetails && parsedDetails.length > 0 && (
                                     <div className="p-4 bg-white border rounded-xl shadow-sm">
                                         <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase flex justify-between items-center">
                                             <span>🔍 最新解析預覽</span>
@@ -859,7 +844,7 @@
                                 </div>
                                 <div className="bg-white p-4 rounded-xl border shadow-sm">
                                     <h3 className="font-bold text-amber-600 mb-3 border-b pb-2">🎯 尾數強勢號 (10局佔比 25%~30%)</h3>
-                                    {stats.strongTails.length > 0 ? (
+                                    {stats.strongTails && stats.strongTails.length > 0 ? (
                                         <div className="flex flex-wrap gap-3">
                                             {stats.strongTails.map(item => (
                                                 <div key={item.tail} className="flex flex-col items-center justify-center bg-amber-50 w-14 h-14 rounded-lg border border-amber-200 shadow-sm">
@@ -924,7 +909,7 @@
                             </div>
                         )}
 
-                        {activeTab === 'details' && stats && (
+                        {activeTab === 'details' && stats && stats.trailDetails && (
                             <div className="animate-fade-in space-y-3">
                                 <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-2">
                                     <h3 className="text-sm font-bold text-indigo-800">最新期號碼牽引預測</h3>
@@ -959,32 +944,33 @@
                     </div>
 
                     <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-1 pb-safe shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-50">
-                        <button onClick={() => setActiveTab('input')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'input' ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
+                        <button onClick={() => setActiveTab('input')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'input' ? 'text-blue-600 font-bold' : 'text-gray-400')}>
                             <IconDatabase /><span className="text-[10px] whitespace-nowrap">資料庫</span>
                         </button>
-                        <button onClick={() => setActiveTab('picks')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'picks' ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
+                        <button onClick={() => setActiveTab('picks')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'picks' ? 'text-blue-600 font-bold' : 'text-gray-400')}>
                             <IconTarget /><span className="text-[10px] whitespace-nowrap">推薦</span>
                         </button>
-                        <button onClick={() => setActiveTab('logic')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'logic' ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
+                        <button onClick={() => setActiveTab('logic')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'logic' ? 'text-blue-600 font-bold' : 'text-gray-400')}>
                             <IconBookOpen /><span className="text-[10px] whitespace-nowrap">邏輯</span>
                         </button>
-                        <button onClick={() => setActiveTab('trends')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'trends' ? 'text-indigo-600 font-bold' : 'text-gray-400'}`}>
+                        <button onClick={() => setActiveTab('trends')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'trends' ? 'text-indigo-600 font-bold' : 'text-gray-400')}>
                             <IconTrendingUp /><span className="text-[10px] whitespace-nowrap">趨勢</span>
                         </button>
-                        <button onClick={() => setActiveTab('details')} className={`flex flex-col items-center gap-1 w-1/5 py-2 ${activeTab === 'details' ? 'text-teal-600 font-bold' : 'text-gray-400'}`}>
+                        <button onClick={() => setActiveTab('details')} className={"flex flex-col items-center gap-1 w-1/5 py-2 " + (activeTab === 'details' ? 'text-teal-600 font-bold' : 'text-gray-400')}>
                             <IconNetwork /><span className="text-[10px] whitespace-nowrap">牽引</span>
                         </button>
-                        <a href="https://kokko-travel.com/binggo/money.html" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 w-1/5 py-2 text-amber-500 hover:text-amber-600 font-bold">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 18V6"></path><path d="M9 14.5c0 1.5 1.5 2.5 3 2.5s3-1 3-2.5-1.5-2.5-3-2.5-3-1-3-2.5 1.5-2.5 3-2.5 3 1 3 2.5"></path></svg>
-                            <span className="text-[10px] whitespace-nowrap">招財指南</span>
-                        </a>
                     </div>
                 </div>
             );
         }
 
+        // 使用 ErrorBoundary 將應用程式包覆起來，若未來有錯誤可直接在畫面顯示
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
